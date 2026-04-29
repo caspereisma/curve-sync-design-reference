@@ -1,0 +1,579 @@
+{
+  "curveSync": {
+    "payee": {
+      "foreignId": "10001119",
+      "name": "1008B Records s Ltd",
+      "alternateName": "Not set",
+      "country": "Netherlands",
+      "address": "Not set",
+      "contactEmail": "Not set",
+      "payeeCategories": "Rights Holder"
+    },
+    "contract": {
+      "name": "1008B Records s Contract",
+      "startDate": "Empty",
+      "endDate": "Empty",
+      "payeeId": "curve-payee-10001119",
+      "payeePercentage": "100",
+      "currency": "EUR"
+    },
+    "salesTerms": [
+      {
+        "id": "curve-performer-all",
+        "sourceDealId": "curve",
+        "catType": "All",
+        "catalogueGroup": "All",
+        "territory": "All",
+        "channel": "All",
+        "configuration": "All",
+        "priceCategory": "Performer",
+        "source": "ALL",
+        "type": "Net Receipts",
+        "rate": "0%",
+        "multiplier": "",
+        "reductionRate": "",
+        "reserve": ""
+      },
+      {
+        "id": "curve-rightsholder-all",
+        "sourceDealId": "curve",
+        "catType": "All",
+        "catalogueGroup": "All",
+        "territory": "All",
+        "channel": "All",
+        "configuration": "All",
+        "priceCategory": "Rightsholder",
+        "source": "ALL",
+        "type": "Net Receipts",
+        "rate": "85%",
+        "multiplier": "",
+        "reductionRate": "",
+        "reserve": ""
+      }
+    ]
+  },
+  "rightsHolders": [
+    {
+      "id": "172",
+      "clientName": "1008B Records s",
+      "tier": "0",
+      "dealStartDate": "2017-10-31",
+      "syncState": "requires-sync",
+      "registrations": [
+        {
+          "color": "green",
+          "value": 78
+        },
+        {
+          "color": "blue",
+          "value": 7
+        },
+        {
+          "color": "yellow",
+          "value": 5
+        },
+        {
+          "color": "gray",
+          "value": 5
+        }
+      ],
+      "details": {
+        "nrpClientId": "10001119",
+        "businessRegisteredAddress": "",
+        "businessMailingAddress": "",
+        "subLabels": "",
+        "fugaOrgId": "",
+        "ddexPartyId": "",
+        "otherIdentifiers": "",
+        "royaltiesClientName": "1008B,1008B Records",
+        "royaltiesContractReferences": "",
+        "dealEndDate": "2025-10-31",
+        "accountingFrequency": "Quarterly",
+        "currency": "EUR",
+        "autoExtend": "No",
+        "autoExtendEvery": "",
+        "noticePeriod": "30 days",
+        "advance": "No",
+        "advanceAmount": "",
+        "syncDealTermsWithCurve": "Enabled",
+        "accountBalance": "70000",
+        "openingBalance": "50000",
+        "closingBalance": "70000",
+        "netAmount": "25000",
+        "netCosts": "2500",
+        "netOutput": "22500",
+        "bankAccountNumber": "",
+        "bankAccountPayee": "",
+        "bankCity": "",
+        "bankCountry": "",
+        "bankName": "",
+        "bankSwiftNumber": "",
+        "bankIbanNumber": "",
+        "billingEmail": "royalties@1008b.example",
+        "comments": "Client migrated from the legacy registrations workflow. Keep existing CMO registrations unchanged until the next statement cycle is confirmed."
+      },
+      "territoryDeals": [
+        {
+          "id": "deal-001",
+          "territories": "World excluding US",
+          "rateType": "flat",
+          "rate": "4%",
+          "startDate": "2017-10-31",
+          "endDate": "2025-10-31",
+          "status": "EXPIRED",
+          "syncState": "requires-sync"
+        },
+        {
+          "id": "deal-002",
+          "territories": "US",
+          "rateType": "sliding",
+          "rate": "5%",
+          "slidingScale": [
+            {
+              "id": "tier-001",
+              "to": "50000",
+              "rate": "12.5%"
+            },
+            {
+              "id": "tier-002",
+              "to": "above",
+              "rate": "5%"
+            }
+          ],
+          "startDate": "2018-01-01",
+          "endDate": "2025-01-29",
+          "status": "EXPIRED",
+          "syncState": "not-synced"
+        }
+      ],
+      "repertoireAssets": [
+        {
+          "id": "asset-001",
+          "artist": "1008B Ensemble",
+          "title": "Central Line",
+          "version": "Original Mix",
+          "isrc": "GBNRP1700001",
+          "album": "First Signal",
+          "territories": "Worldwide",
+          "startDate": "2017-10-31",
+          "endDate": "2025-10-31",
+          "syncState": "synced"
+        },
+        {
+          "id": "asset-002",
+          "artist": "Lina North",
+          "title": "Open Water",
+          "version": "Radio Edit",
+          "isrc": "GBNRP1800045",
+          "album": "Glass Coast",
+          "territories": "Europe",
+          "startDate": "2018-04-12",
+          "endDate": "2025-10-31",
+          "syncState": "requires-sync"
+        },
+        {
+          "id": "asset-003",
+          "artist": "The Record Room",
+          "title": "Monochrome Sunday",
+          "version": "Instrumental",
+          "isrc": "GBNRP1900172",
+          "album": "Studio Archive",
+          "territories": "United Kingdom, Ireland",
+          "startDate": "2019-02-01",
+          "endDate": "2025-10-31",
+          "syncState": "not-synced"
+        }
+      ],
+      "statements": [
+        {
+          "id": "statement-2025-q4",
+          "period": "2025 Q4",
+          "currency": "$",
+          "subtotal": "55433.41",
+          "recoupmentState": "just-recouped",
+          "expanded": true,
+          "files": [
+            {
+              "id": "statement-2025-q4-self-bill",
+              "type": "self bill invoice pdf",
+              "fileName": "2025 - Q4 1008B Records s Self Billing Invoice.pdf"
+            },
+            {
+              "id": "statement-2025-q4-invoice",
+              "type": "invoice pdf",
+              "fileName": "2025 - Q4 1008B Records s Fees Invoice.pdf"
+            },
+            {
+              "id": "statement-2025-q4-sales",
+              "type": "csv allocation",
+              "fileName": "2025 - Q4 1008B Records s Sales Export.csv"
+            },
+            {
+              "id": "statement-2025-q4-summary",
+              "type": "accounting summary pdf",
+              "fileName": "2025 - Q4 1008B Records s.pdf"
+            }
+          ]
+        },
+        {
+          "id": "statement-2025-q3",
+          "period": "2025 Q3",
+          "currency": "$",
+          "subtotal": "54776.38",
+          "recoupmentState": "just-recouped",
+          "expanded": false,
+          "files": []
+        },
+        {
+          "id": "statement-2025-q2",
+          "period": "2025 Q2",
+          "currency": "$",
+          "subtotal": "84366.79",
+          "recoupmentState": "just-recouped",
+          "expanded": false,
+          "files": []
+        },
+        {
+          "id": "statement-2025-q1",
+          "period": "2025 Q1",
+          "currency": "$",
+          "subtotal": "14425.38",
+          "recoupmentState": "just-recouped",
+          "expanded": false,
+          "files": []
+        },
+        {
+          "id": "statement-2024-q4",
+          "period": "2024 Q4",
+          "currency": "$",
+          "subtotal": "52395.32",
+          "recoupmentState": "just-recouped",
+          "expanded": false,
+          "files": []
+        },
+        {
+          "id": "statement-2024-q3",
+          "period": "2024 Q3",
+          "currency": "$",
+          "subtotal": "42929.22",
+          "recoupmentState": "just-recouped",
+          "expanded": false,
+          "files": []
+        },
+        {
+          "id": "statement-2024-q2",
+          "period": "2024 Q2",
+          "currency": "$",
+          "subtotal": "80331.84",
+          "recoupmentState": "just-recouped",
+          "expanded": false,
+          "files": []
+        },
+        {
+          "id": "statement-2024-q1",
+          "period": "2024 Q1",
+          "currency": "$",
+          "subtotal": "11749.11",
+          "recoupmentState": "just-recouped",
+          "expanded": false,
+          "files": []
+        },
+        {
+          "id": "statement-2023-q4",
+          "period": "2023 Q4",
+          "currency": "$",
+          "subtotal": "82821.67",
+          "recoupmentState": "in-recoupment",
+          "expanded": false,
+          "files": []
+        },
+        {
+          "id": "statement-2023-q3",
+          "period": "2023 Q3",
+          "currency": "$",
+          "subtotal": "96648.26",
+          "recoupmentState": "post-recoupment",
+          "expanded": false,
+          "files": []
+        }
+      ],
+      "cmoRegistrations": [
+        {
+          "cmo": "PPL",
+          "territories": "United Kingdom, Ireland",
+          "startDate": "2017-10-31",
+          "endDate": "2025-10-31",
+          "status": "REGISTERED",
+          "statusDate": "2026-02-18"
+        },
+        {
+          "cmo": "SENA",
+          "territories": "Netherlands",
+          "startDate": "2018-01-01",
+          "endDate": "2025-10-31",
+          "status": "SUBMITTED",
+          "statusDate": "2026-03-06"
+        },
+        {
+          "cmo": "Gramex",
+          "territories": "Denmark, Finland",
+          "startDate": "2019-05-01",
+          "endDate": "2025-10-31",
+          "status": "TO BE REGISTERED",
+          "statusDate": "2026-04-01"
+        }
+      ]
+    },
+    {
+      "id": "173",
+      "clientName": "1008C Records",
+      "tier": "",
+      "dealStartDate": "",
+      "syncState": "synced",
+      "registrations": [
+        {
+          "color": "green",
+          "value": 94
+        },
+        {
+          "color": "blue",
+          "value": 6
+        }
+      ]
+    },
+    {
+      "id": "174",
+      "clientName": "1008D Records",
+      "tier": "",
+      "dealStartDate": "",
+      "syncState": "not-synced",
+      "registrations": [
+        {
+          "color": "green",
+          "value": 100
+        }
+      ]
+    },
+    {
+      "id": "175",
+      "clientName": "1009B Records",
+      "tier": "",
+      "dealStartDate": "",
+      "syncState": "requires-sync",
+      "registrations": [
+        {
+          "color": "yellow",
+          "value": 100
+        }
+      ]
+    },
+    {
+      "id": "176",
+      "clientName": "1009C Records",
+      "tier": "",
+      "dealStartDate": "",
+      "registrations": [
+        {
+          "color": "green",
+          "value": 95
+        },
+        {
+          "color": "yellow",
+          "value": 5
+        }
+      ]
+    },
+    {
+      "id": "177",
+      "clientName": "1009E Records",
+      "tier": "",
+      "dealStartDate": "2026-03-01",
+      "registrations": [
+        {
+          "color": "green",
+          "value": 94
+        },
+        {
+          "color": "yellow",
+          "value": 6
+        }
+      ]
+    },
+    {
+      "id": "178",
+      "clientName": "1009F Records",
+      "tier": "",
+      "dealStartDate": "",
+      "registrations": [
+        {
+          "color": "green",
+          "value": 100
+        }
+      ]
+    },
+    {
+      "id": "179",
+      "clientName": "105D EL Records",
+      "tier": "",
+      "dealStartDate": "",
+      "registrations": [
+        {
+          "color": "green",
+          "value": 100
+        }
+      ]
+    },
+    {
+      "id": "180",
+      "clientName": "1094A Records Ltd",
+      "tier": "",
+      "dealStartDate": "",
+      "registrations": [
+        {
+          "color": "green",
+          "value": 100
+        }
+      ]
+    },
+    {
+      "id": "181",
+      "clientName": "1094B Records",
+      "tier": "",
+      "dealStartDate": "",
+      "registrations": [
+        {
+          "color": "green",
+          "value": 100
+        }
+      ]
+    },
+    {
+      "id": "182",
+      "clientName": "1094C Records",
+      "tier": "",
+      "dealStartDate": "",
+      "registrations": [
+        {
+          "color": "green",
+          "value": 100
+        }
+      ]
+    },
+    {
+      "id": "183",
+      "clientName": "1094D Records",
+      "tier": "",
+      "dealStartDate": "",
+      "registrations": [
+        {
+          "color": "green",
+          "value": 100
+        }
+      ]
+    },
+    {
+      "id": "184",
+      "clientName": "1121B Records",
+      "tier": "",
+      "dealStartDate": "",
+      "registrations": [
+        {
+          "color": "green",
+          "value": 95
+        },
+        {
+          "color": "yellow",
+          "value": 5
+        }
+      ]
+    },
+    {
+      "id": "185",
+      "clientName": "1127B Records",
+      "tier": "",
+      "dealStartDate": "",
+      "registrations": [
+        {
+          "color": "green",
+          "value": 94
+        },
+        {
+          "color": "yellow",
+          "value": 6
+        }
+      ]
+    },
+    {
+      "id": "186",
+      "clientName": "1127 Records Ltd",
+      "tier": "",
+      "dealStartDate": "",
+      "registrations": [
+        {
+          "color": "yellow",
+          "value": 100
+        }
+      ]
+    },
+    {
+      "id": "187",
+      "clientName": "1132B Records",
+      "tier": "",
+      "dealStartDate": "",
+      "registrations": [
+        {
+          "color": "green",
+          "value": 94
+        },
+        {
+          "color": "yellow",
+          "value": 6
+        }
+      ]
+    },
+    {
+      "id": "188",
+      "clientName": "1161A Records",
+      "tier": "",
+      "dealStartDate": "",
+      "registrations": [
+        {
+          "color": "green",
+          "value": 100
+        }
+      ]
+    },
+    {
+      "id": "189",
+      "clientName": "11-7 Recording Corp",
+      "tier": "",
+      "dealStartDate": "",
+      "registrations": [
+        {
+          "color": "green",
+          "value": 87
+        },
+        {
+          "color": "blue",
+          "value": 6
+        },
+        {
+          "color": "yellow",
+          "value": 7
+        }
+      ]
+    },
+    {
+      "id": "190",
+      "clientName": "177A Records",
+      "tier": "",
+      "dealStartDate": "",
+      "registrations": [
+        {
+          "color": "empty",
+          "value": 100
+        }
+      ]
+    }
+  ]
+}

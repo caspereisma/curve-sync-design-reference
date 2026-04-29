@@ -1,0 +1,41 @@
+{
+    "name": "curve-sync-design-reference",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite --host 127.0.0.1 --port 3101",
+        "build": "vite build",
+        "preview": "vite preview --host 127.0.0.1 --port 4101",
+        "typecheck": "tsc --noEmit",
+        "lint": "eslint .",
+        "test": "vitest run"
+    },
+    "dependencies": {
+        "@emotion/react": "11.14.0",
+        "@emotion/styled": "11.14.0",
+        "@mui/icons-material": "6.4.3",
+        "@mui/material": "6.4.3",
+        "@mui/styles": "6.4.3",
+        "@reduxjs/toolkit": "2.11.2",
+        "react": "18.3.1",
+        "react-dom": "18.3.1",
+        "react-redux": "7.2.9",
+        "react-router-dom": "5.3.4"
+    },
+    "devDependencies": {
+        "@testing-library/jest-dom": "5.17.0",
+        "@testing-library/react": "16.2.0",
+        "@testing-library/user-event": "14.6.1",
+        "@types/node": "25.2.0",
+        "@types/react": "19.2.10",
+        "@types/react-dom": "19.2.3",
+        "@types/react-router-dom": "5.3.3",
+        "@vitejs/plugin-react": "4.3.4",
+        "eslint": "9.39.1",
+        "jsdom": "24.1.3",
+        "typescript": "5.9.3",
+        "vite": "7.1.12",
+        "vitest": "4.0.6"
+    }
+}
