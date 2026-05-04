@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 import AddIcon from '@mui/icons-material/Add';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import CheckIcon from '@mui/icons-material/Check';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import DownloadIcon from '@mui/icons-material/Download';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
@@ -289,7 +290,13 @@ function MainDetailsTab({
                         key={section.id}
                         className={activeSection === section.id ? 'active' : undefined}
                         href={`#${section.id}`}
-                        onClick={() => setActiveSection(section.id)}
+                        onClick={(event) => {
+                            event.preventDefault();
+                            document
+                                .getElementById(section.id)
+                                ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            setActiveSection(section.id);
+                        }}
                     >
                         {section.label}
                     </a>
@@ -437,20 +444,14 @@ function MainDetailsTab({
                         <AdvanceField />
                         <DetailPlaceholder />
                     </div>
-                    <div className="reference-field-grid reference-balance-grid">
-                        <DetailField
-                            label="Account balance"
-                            value={details.accountBalance}
-                            editable={isEditing}
-                            onChange={updateDetail('accountBalance')}
-                        />
-                        <DetailPlaceholder />
-                    </div>
                     <div className="reference-subsection-header">
                         <div className="reference-title-with-sync">
                             <h3>Territory Deals</h3>
                             <SyncStateIndicator
                                 state={getAggregateDealSyncState(client.territoryDeals, dealSyncStates)}
+                                showLabel
+                                subject="Deals"
+                                plural
                                 ariaLabel="Sync Territory Deals with Curve"
                                 onClick={onOpenDealSync}
                             />
@@ -572,10 +573,9 @@ function RepertoireTab({ assets }: { assets: RepertoireAsset[] }): React.ReactEl
                     variant="outlined"
                 />
                 <div className="reference-toolbar-actions">
-                    <SyncStateIndicator state={globalSyncState} showLabel />
                     <Button
                         variant="contained"
-                        endIcon={<SyncIcon />}
+                        startIcon={<SyncIcon />}
                         sx={{
                             backgroundColor: '#3f3f43',
                             color: '#ffffff',
@@ -583,7 +583,8 @@ function RepertoireTab({ assets }: { assets: RepertoireAsset[] }): React.ReactEl
                             fontWeight: 800,
                             letterSpacing: 0,
                             minHeight: 34,
-                            '&:hover': { backgroundColor: '#2f2f32' }
+                            '&:hover': { backgroundColor: '#2f2f32' },
+                            '& .MuiSvgIcon-root': { color: '#ffffff' }
                         }}
                     >
                         Sync with Curve
@@ -1270,12 +1271,51 @@ const getEffectiveDealRate = (deal: TerritoryDeal, accountBalance: string): stri
     return numericTier?.rate ?? aboveTier?.rate ?? deal.rate;
 };
 
-const getDealRateLabel = (deal: TerritoryDeal, accountBalance: string): string => {
-    if (deal.rateType !== 'sliding') {
+const getDealRateLabel = (
+    deal: TerritoryDeal,
+    accountBalance: string,
+    options?: { showCurrentBadge?: boolean }
+): React.ReactNode => {
+    if (deal.rateType !== 'sliding' || !deal.slidingScale?.length) {
         return deal.rate;
     }
 
-    return `Sliding ${getEffectiveDealRate(deal, accountBalance)}`;
+    const balance = parseMoneyValue(accountBalance);
+    let activeIdx = deal.slidingScale.findIndex(
+        (tier) => tier.to !== 'above' && balance <= parseMoneyValue(tier.to)
+    );
+    if (activeIdx === -1) {
+        activeIdx = deal.slidingScale.findIndex((tier) => tier.to === 'above');
+    }
+
+    const elements: React.ReactNode[] = [];
+    let lastThreshold: string | null = null;
+    deal.slidingScale.forEach((tier, i) => {
+        let text: string;
+        if (tier.to === 'above') {
+            text = lastThreshold ? `> ${lastThreshold} (${tier.rate})` : `(${tier.rate})`;
+        } else {
+            const formatted = formatMoneyLabel(tier.to);
+            text = `< ${formatted} (${tier.rate})`;
+            lastThreshold = formatted;
+        }
+        if (i > 0) {
+            elements.push(<span key={`${tier.id}-sep`}>; </span>);
+        }
+        elements.push(
+            <span key={tier.id} className={i === activeIdx ? 'reference-rate-tier-active' : undefined}>
+                {text}
+            </span>
+        );
+        if (i === activeIdx && options?.showCurrentBadge) {
+            elements.push(
+                <span key={`${tier.id}-current`} className="reference-sync-deal-card-current">
+                    <CheckIcon sx={{ fontSize: 14 }} /> Current
+                </span>
+            );
+        }
+    });
+    return elements;
 };
 
 const isEmptyPayloadValue = (value: string): boolean => value === 'Empty' || value === 'Not set';
@@ -1647,12 +1687,11 @@ function PayloadTable({ rows }: { rows: CurvePayloadField[] }): React.ReactEleme
         <div className="reference-payload-table" role="table">
             <div className="reference-payload-row header" role="row">
                 <div role="columnheader">Field</div>
-                <div role="columnheader">NR value</div>
-                <div role="columnheader">Curve current</div>
-                <div role="columnheader">Sent to Curve</div>
+                <div role="columnheader">Curve</div>
+                <div role="columnheader">NR</div>
             </div>
             {rows.map((row) => {
-                const isChanged = !row.immutable && shouldHighlightPayloadChange(row.curveValue, row.sentValue);
+                const isChanged = !row.immutable && shouldHighlightPayloadChange(row.curveValue, row.nrValue);
 
                 return (
                     <div
@@ -1663,12 +1702,11 @@ function PayloadTable({ rows }: { rows: CurvePayloadField[] }): React.ReactEleme
                         role="row"
                     >
                         <div role="cell">{row.field}</div>
-                        <div role="cell">{row.nrValue}</div>
                         <div role="cell" className={isChanged ? 'reference-before-value' : undefined}>
                             {row.curveValue}
                         </div>
                         <div role="cell" className={isChanged ? 'reference-after-value' : undefined}>
-                            {row.sentValue}
+                            {row.nrValue}
                         </div>
                     </div>
                 );
@@ -1681,12 +1719,14 @@ function SalesTermsEditor({
     salesTerms,
     onAddSalesTerm,
     onDeleteSalesTerm,
-    onUpdateSalesTerm
+    onUpdateSalesTerm,
+    title
 }: {
     salesTerms: CurveSalesTermConfig[];
     onAddSalesTerm: () => void;
     onDeleteSalesTerm: (_salesTermId: string) => void;
     onUpdateSalesTerm: (_salesTermId: string, _field: EditableSalesTermField, _value: string) => void;
+    title?: string;
 }): React.ReactElement {
     const renderInput = (
         salesTerm: CurveSalesTermConfig,
@@ -1704,8 +1744,9 @@ function SalesTermsEditor({
     return (
         <>
             <div className="reference-sales-terms-toolbar">
+                {title && <h5 className="reference-sales-terms-title">{title}</h5>}
                 <Button
-                    variant="outlined"
+                    variant="text"
                     color="inherit"
                     startIcon={<AddIcon />}
                     onClick={onAddSalesTerm}
@@ -2056,10 +2097,6 @@ function CurveSyncDialog({
 }): React.ReactElement {
     const payeePayload = buildPayeePayload(client);
     const contractPayload = buildContractPayload(client);
-    const selectedDealIdSet = new Set(selectedDealIds);
-    const selectedDeals = client.territoryDeals.filter((deal) => selectedDealIdSet.has(deal.id));
-    const salesTermsPayload = salesTerms.filter((salesTerm) => selectedDealIdSet.has(salesTerm.sourceDealId));
-    const aggregateDealSyncState = getAggregateDealSyncState(client.territoryDeals, dealSyncStates);
     const hasSelectedScope = selectedScopes.length > 0 && (!selectedScopes.includes('deals') || selectedDealIds.length > 0);
     const isDealDisabled = (deal: TerritoryDeal): boolean =>
         !selectedDealIds.includes(deal.id) && hasSelectedTerritoryConflict(deal, selectedDealIds, client.territoryDeals);
@@ -2070,114 +2107,109 @@ function CurveSyncDialog({
             <DialogContent>
                 <div className="reference-sync-modal">
                     <div className="reference-sync-options" aria-label="Curve sync options">
-                        <label className="reference-sync-option">
-                            <Checkbox
-                                checked={selectedScopes.includes('client')}
-                                onChange={() => onToggleScope('client')}
-                            />
-                            <span>
-                                <strong className="reference-sync-option-title">
-                                    Client data
-                                    <SyncStateIndicator state={client.syncState} />
-                                </strong>
-                                <small>Payee fields: foreignId, name, alternateName, country, address, contactEmail, payeeCategories</small>
-                            </span>
-                        </label>
-                        <label className="reference-sync-option">
-                            <Checkbox
-                                checked={selectedScopes.includes('deals')}
-                                onChange={() => onToggleScope('deals')}
-                            />
-                            <span>
-                                <strong className="reference-sync-option-title">
-                                    Territory deals
-                                    <SyncStateIndicator state={aggregateDealSyncState} />
-                                </strong>
-                                <small>Contract fields: name, dates, payee, currency, salesTerms</small>
-                            </span>
-                        </label>
-                    </div>
-
-                    {selectedScopes.includes('deals') && (
-                        <>
-                            <div className="reference-sync-deal-list" aria-label="Territory deals to sync">
-                                {client.territoryDeals.map((deal) => (
-                                    <label
-                                        key={deal.id}
-                                        className={isDealDisabled(deal) ? 'disabled' : undefined}
-                                        title={isDealDisabled(deal) ? 'Territory already covered by selected deal' : undefined}
-                                    >
-                                        <Checkbox
-                                            checked={selectedDealIds.includes(deal.id)}
-                                            disabled={isDealDisabled(deal)}
-                                            onChange={() => onToggleDeal(deal.id)}
-                                        />
-                                        <span>{`${deal.territories} · ${deal.startDate} - ${deal.endDate}`}</span>
-                                    </label>
-                                ))}
-                            </div>
-                            <div className="reference-sync-rate-summary" aria-label="Client balance and effective rates">
-                                <div className="reference-sync-rate-card">
-                                    <span>Account balance</span>
-                                    <strong>{client.details.accountBalance || '0'}</strong>
+                        <div
+                            className={`reference-sync-option${selectedScopes.includes('client') ? ' selected' : ''}`}
+                        >
+                            <label className="reference-sync-option-header">
+                                <Checkbox
+                                    checked={selectedScopes.includes('client')}
+                                    onChange={() => onToggleScope('client')}
+                                />
+                                <span>
+                                    <strong className="reference-sync-option-title">Client data</strong>
+                                    <small>Payee fields: foreignId, name, alternateName, country, address, contactEmail, payeeCategories</small>
+                                </span>
+                            </label>
+                            {selectedScopes.includes('client') && (
+                                <div className="reference-sync-option-body" aria-label="Client NRP overwrites">
+                                    <h4>NRP overwrites</h4>
+                                    <PayloadTable rows={payeePayload} />
                                 </div>
-                                <div className="reference-sync-rate-card reference-sync-rate-card-wide">
-                                    <span>Selected deal rates</span>
-                                    {selectedDeals.map((deal) => (
-                                        <div key={deal.id} className="reference-sync-rate-row">
-                                            <strong>{deal.territories}</strong>
-                                            {deal.rateType === 'sliding' ? (
-                                                <>
-                                                    <span>Actual {deal.rate}</span>
-                                                    <span>Effective {getEffectiveDealRate(deal, client.details.accountBalance)}</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <span>Rate {deal.rate}</span>
-                                                    <span />
-                                                </>
-                                            )}
-                                        </div>
-                                    ))}
+                            )}
+                        </div>
+                        <div
+                            className={`reference-sync-option${selectedScopes.includes('deals') ? ' selected' : ''}`}
+                        >
+                            <label className="reference-sync-option-header">
+                                <Checkbox
+                                    checked={selectedScopes.includes('deals')}
+                                    onChange={() => onToggleScope('deals')}
+                                />
+                                <span>
+                                    <strong className="reference-sync-option-title">Territory deals</strong>
+                                    <small>Contract fields: name, dates, payee, currency, salesTerms</small>
+                                </span>
+                            </label>
+                            {selectedScopes.includes('deals') && (
+                                <div className="reference-sync-option-body" aria-label="Territory deal NRP overwrites">
+                                    <h4>NRP overwrites</h4>
+                                    <PayloadTable rows={contractPayload} />
+
+                                    {client.territoryDeals.map((deal) => {
+                                        const isSelected = selectedDealIds.includes(deal.id);
+                                        const disabled = isDealDisabled(deal);
+                                        const dealSalesTerms = salesTerms.filter(
+                                            (term) => term.sourceDealId === deal.id
+                                        );
+                                        return (
+                                            <div
+                                                key={deal.id}
+                                                className={`reference-sync-deal-card${
+                                                    isSelected ? ' selected' : ''
+                                                }${disabled ? ' disabled' : ''}`}
+                                            >
+                                                <label
+                                                    className="reference-sync-deal-card-header"
+                                                    title={
+                                                        disabled
+                                                            ? 'Territory already covered by selected deal'
+                                                            : undefined
+                                                    }
+                                                >
+                                                    <Checkbox
+                                                        checked={isSelected}
+                                                        disabled={disabled}
+                                                        onChange={() => onToggleDeal(deal.id)}
+                                                    />
+                                                    <strong>{deal.territories}</strong>
+                                                </label>
+                                                <div className="reference-sync-deal-card-meta">
+                                                    <span>
+                                                        <strong>Start:</strong> {deal.startDate}{' '}
+                                                        <strong>End:</strong> {deal.endDate}
+                                                    </span>
+                                                    <span>
+                                                        <strong>Rate:</strong>{' '}
+                                                        {getDealRateLabel(deal, client.details.accountBalance, {
+                                                            showCurrentBadge: true
+                                                        })}
+                                                    </span>
+                                                </div>
+                                                {isSelected && (
+                                                    <div className="reference-sync-deal-card-sales-terms">
+                                                        <SalesTermsEditor
+                                                            title="Sales terms output"
+                                                            salesTerms={dealSalesTerms}
+                                                            onAddSalesTerm={onAddSalesTerm}
+                                                            onDeleteSalesTerm={onDeleteSalesTerm}
+                                                            onUpdateSalesTerm={onUpdateSalesTerm}
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
-                            </div>
-                        </>
-                    )}
-
-                    <div className="reference-sync-sections">
-                        {selectedScopes.includes('client') && (
-                            <section className="reference-sync-card" aria-label="Payee payload">
-                                <h3>Payee payload</h3>
-                                <PayloadTable rows={payeePayload} />
-                            </section>
-                        )}
-
-                        {selectedScopes.includes('deals') && (
-                            <section className="reference-sync-card" aria-label="Contract payload">
-                                <h3>Contract payload</h3>
-                                <PayloadTable rows={contractPayload} />
-                            </section>
-                        )}
+                            )}
+                        </div>
                     </div>
-
-                    {selectedScopes.includes('deals') && (
-                        <section className="reference-sync-card reference-sync-card-full" aria-label="Sales terms output">
-                            <h3>Sales terms output</h3>
-                            <SalesTermsEditor
-                                salesTerms={salesTermsPayload}
-                                onAddSalesTerm={onAddSalesTerm}
-                                onDeleteSalesTerm={onDeleteSalesTerm}
-                                onUpdateSalesTerm={onUpdateSalesTerm}
-                            />
-                        </section>
-                    )}
                 </div>
             </DialogContent>
             <DialogActions>
-                <Button color="inherit" onClick={onClose}>
+                <Button variant="outlined" color="inherit" onClick={onClose}>
                     Cancel
                 </Button>
-                <Button variant="contained" startIcon={<SyncIcon />} disabled={!hasSelectedScope} onClick={onSync}>
+                <Button variant="contained" disabled={!hasSelectedScope} onClick={onSync}>
                     Sync selected
                 </Button>
             </DialogActions>
@@ -2401,6 +2433,8 @@ function ReferenceClientPage(): React.ReactElement {
                     <h1 className="reference-page-title">{draftClient.clientName}</h1>
                     <SyncStateIndicator
                         state={clientSyncState}
+                        showLabel
+                        subject="Client"
                         ariaLabel={`Sync ${draftClient.clientName} client with Curve`}
                         onClick={() => openSyncDialog(['client'], [])}
                     />
@@ -2449,7 +2483,8 @@ function ReferenceClientPage(): React.ReactElement {
                                         letterSpacing: 0,
                                         '&:hover': {
                                             backgroundColor: '#2f2f32'
-                                        }
+                                        },
+                                        '& .MuiSvgIcon-root': { color: '#ffffff' }
                                     }}
                                 >
                                     Sync with Curve
@@ -2475,6 +2510,29 @@ function ReferenceClientPage(): React.ReactElement {
                         )}
                     </div>
                 )}
+            </div>
+
+            <div className="reference-highlights" aria-label="Client highlights">
+                <div className="reference-highlight">
+                    <span className="reference-highlight-label">Income Q2 2026</span>
+                    <span className="reference-highlight-value">€6,700</span>
+                </div>
+                <div className="reference-highlight">
+                    <span className="reference-highlight-label">Account balance</span>
+                    <span className="reference-highlight-value">€70,000</span>
+                </div>
+                <div className="reference-highlight">
+                    <span className="reference-highlight-label">Registered</span>
+                    <span className="reference-highlight-value">33</span>
+                </div>
+                <div className="reference-highlight">
+                    <span className="reference-highlight-label">Submitted</span>
+                    <span className="reference-highlight-value">1</span>
+                </div>
+                <div className="reference-highlight">
+                    <span className="reference-highlight-label">To be registered</span>
+                    <span className="reference-highlight-value">1</span>
+                </div>
             </div>
 
             <Tabs

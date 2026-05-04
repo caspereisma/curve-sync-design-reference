@@ -239,17 +239,17 @@ const referenceEvents: AssetSyncEvent[] = [
 function ReferenceTopBar({ onOpenAssetSync }: ReferenceTopBarProps): React.ReactElement {
     const location = useLocation();
     const navItems: NavItem[] = [
-        { label: 'CMOS', href: '/cmos' },
+        { label: 'CMOs', href: '/cmos' },
         {
-            label: 'CLIENTS',
+            label: 'Clients',
             href: '/rights-holders',
             isActive:
                 location.pathname.startsWith('/rights-holders') ||
                 location.pathname.startsWith('/rights-holder-page'),
             hasMenu: true
         },
-        { label: 'USER MANAGEMENT', href: '/users' },
-        { label: 'EVENTS', href: '/events' }
+        { label: 'User management', href: '/users' },
+        { label: 'Events', href: '/events' }
     ];
 
     return (
