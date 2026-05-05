@@ -55,6 +55,7 @@ interface DetailFieldProps {
     full?: boolean;
     icon?: React.ReactNode;
     multiline?: boolean;
+    outOfSync?: boolean;
     onChange?: (_value: string) => void;
 }
 
@@ -95,6 +96,7 @@ function DetailField({
     full = false,
     icon,
     multiline = false,
+    outOfSync = false,
     onChange
 }: DetailFieldProps): React.ReactElement {
     return (
@@ -122,6 +124,12 @@ function DetailField({
                 )}
                 {icon}
             </div>
+            {outOfSync && (
+                <span className="reference-field-helper" role="status">
+                    <SyncIcon sx={{ fontSize: 14 }} />
+                    Updated, out of sync with Curve
+                </span>
+            )}
         </div>
     );
 }
@@ -224,13 +232,27 @@ function TerritoryDealsTable({
                     {' '}
                 </div>
             </div>
-            {deals.map((deal) => (
-                <div key={deal.id} className="reference-table-row territory-deal-grid" role="row">
+            {deals.map((deal) => {
+                const requiresSync = deal.syncState === 'requires-sync';
+                return (
+                <div
+                    key={deal.id}
+                    className={`reference-table-row territory-deal-grid${
+                        requiresSync ? ' requires-sync' : ''
+                    }`}
+                    role="row"
+                >
                     <div className="reference-table-cell" role="cell">
                         {deal.territories}
                     </div>
                     <div className="reference-table-cell" role="cell">
                         <span>{getDealRateLabel(deal, accountBalance)}</span>
+                        {requiresSync && (
+                            <SyncIcon
+                                sx={{ fontSize: 14, color: 'var(--nr-warning)', marginLeft: 0.5 }}
+                                aria-label="Requires sync"
+                            />
+                        )}
                     </div>
                     <div className="reference-table-cell" role="cell">
                         {deal.startDate}
@@ -253,7 +275,8 @@ function TerritoryDealsTable({
                         <DeleteOutlineIcon aria-label="Delete deal" />
                     </div>
                 </div>
-            ))}
+                );
+            })}
         </div>
     );
 }
@@ -311,6 +334,7 @@ function MainDetailsTab({
                             label="Client Name/Legal Company *"
                             value={client.clientName}
                             editable={isEditing}
+                            outOfSync
                             onChange={updateClient('clientName')}
                         />
                         <DetailPlaceholder />
@@ -373,6 +397,7 @@ function MainDetailsTab({
                         />
                         <DetailPlaceholder />
                         <DetailField
+                            outOfSync
                             label="Royalties Client Name"
                             value={details.royaltiesClientName}
                             editable={isEditing}
@@ -447,14 +472,6 @@ function MainDetailsTab({
                     <div className="reference-subsection-header">
                         <div className="reference-title-with-sync">
                             <h3>Territory Deals</h3>
-                            <SyncStateIndicator
-                                state={getAggregateDealSyncState(client.territoryDeals, dealSyncStates)}
-                                showLabel
-                                subject="Deals"
-                                plural
-                                ariaLabel="Sync Territory Deals with Curve"
-                                onClick={onOpenDealSync}
-                            />
                         </div>
                         <Button
                             variant="outlined"
@@ -501,6 +518,7 @@ function MainDetailsTab({
                         />
                         <DetailField
                             label="Bank country"
+                            outOfSync
                             value={details.bankCountry}
                             editable={isEditing}
                             onChange={updateDetail('bankCountry')}
@@ -1641,38 +1659,6 @@ const buildContractPayload = (client: RightsHolderClient): CurvePayloadField[] =
             sentValue: contractName
         },
         {
-            id: 'contract-start-date',
-            field: 'startDate',
-            nrValue: emptyValue,
-            curveValue: referenceCurveSyncData.contract.startDate,
-            sentValue: emptyValue,
-            immutable: true
-        },
-        {
-            id: 'contract-end-date',
-            field: 'endDate',
-            nrValue: emptyValue,
-            curveValue: referenceCurveSyncData.contract.endDate,
-            sentValue: emptyValue,
-            immutable: true
-        },
-        {
-            id: 'contract-payee-id',
-            field: 'payees.payeeId',
-            nrValue: payeeId,
-            curveValue: referenceCurveSyncData.contract.payeeId,
-            sentValue: payeeId,
-            immutable: true
-        },
-        {
-            id: 'contract-payee-percentage',
-            field: 'payees.percentage',
-            nrValue: '100',
-            curveValue: referenceCurveSyncData.contract.payeePercentage,
-            sentValue: '100',
-            immutable: true
-        },
-        {
             id: 'contract-currency',
             field: 'currency',
             nrValue: client.details.currency,
@@ -1765,18 +1751,10 @@ function SalesTermsEditor({
             <div className="reference-sales-terms-table" role="table" aria-label="Sales terms payload">
                 <div className="reference-sales-terms-row header" role="row">
                     <div role="columnheader">State</div>
-                    <div role="columnheader">Cat type</div>
-                    <div role="columnheader">Cat group</div>
-                    <div role="columnheader">Territory</div>
-                    <div role="columnheader">Channel</div>
-                    <div role="columnheader">Config</div>
                     <div role="columnheader">Price cat</div>
                     <div role="columnheader">Source</div>
                     <div role="columnheader">Deal type</div>
                     <div role="columnheader">Rate %</div>
-                    <div role="columnheader">Multiplier</div>
-                    <div role="columnheader">Reduction %</div>
-                    <div role="columnheader">Reserve %</div>
                     <div role="columnheader" aria-label="Sales term actions" />
                 </div>
                 {salesTerms.map((salesTerm) => {
@@ -1793,11 +1771,6 @@ function SalesTermsEditor({
                                     {status.replace('-', ' ')}
                                 </span>
                             </div>
-                            <div role="cell">{renderInput(salesTerm, 'catType', 'Cat type')}</div>
-                            <div role="cell">{renderInput(salesTerm, 'catalogueGroup', 'Cat group')}</div>
-                            <div role="cell">{renderInput(salesTerm, 'territory', 'Territory')}</div>
-                            <div role="cell">{renderInput(salesTerm, 'channel', 'Channel')}</div>
-                            <div role="cell">{renderInput(salesTerm, 'configuration', 'Config')}</div>
                             <div role="cell">
                                 <select
                                     aria-label={`Price category ${salesTerm.id}`}
@@ -1838,9 +1811,6 @@ function SalesTermsEditor({
                             </div>
                             <div role="cell">{renderInput(salesTerm, 'type', 'Deal type')}</div>
                             <div role="cell">{renderInput(salesTerm, 'rate', 'Rate')}</div>
-                            <div role="cell">{renderInput(salesTerm, 'multiplier', 'Multiplier')}</div>
-                            <div role="cell">{renderInput(salesTerm, 'reductionRate', 'Reduction')}</div>
-                            <div role="cell">{renderInput(salesTerm, 'reserve', 'Reserve')}</div>
                             <div role="cell">
                                 <button
                                     aria-label={`Delete sales term ${salesTerm.id}`}
@@ -2190,7 +2160,7 @@ function CurveSyncDialog({
                                         {isSelected && (
                                             <div className="reference-sync-deal-card-sales-terms">
                                                 <SalesTermsEditor
-                                                    title="Sales terms output"
+                                                    title="Curve Sales Terms overwrites"
                                                     salesTerms={dealSalesTerms}
                                                     onAddSalesTerm={onAddSalesTerm}
                                                     onDeleteSalesTerm={onDeleteSalesTerm}
@@ -2515,11 +2485,16 @@ function ReferenceClientPage(): React.ReactElement {
             <div className="reference-highlights" aria-label="Client highlights">
                 <div className="reference-highlight">
                     <span className="reference-highlight-label">Income Q2 2026</span>
-                    <span className="reference-highlight-value">€6,700</span>
+                    <span className="reference-highlight-value">€734</span>
                 </div>
                 <div className="reference-highlight">
-                    <span className="reference-highlight-label">Account balance</span>
-                    <span className="reference-highlight-value">€70,000</span>
+                    <span className="reference-highlight-label">Total income</span>
+                    <span className="reference-highlight-value">€35,997</span>
+                </div>
+                <div className="reference-highlight">
+                    <span className="reference-highlight-label">Recouped</span>
+                    <span className="reference-highlight-value">€35,997</span>
+                    <span className="reference-highlight-sub">Advanced: €50,000</span>
                 </div>
                 <div className="reference-highlight">
                     <span className="reference-highlight-label">Registered</span>

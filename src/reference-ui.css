@@ -932,8 +932,7 @@ body {
 }
 
 .reference-sales-terms-row {
-    min-width: 1520px;
-    grid-template-columns: 100px 90px 100px 96px 86px 86px 126px 150px 128px 74px 90px 100px 90px 44px;
+    grid-template-columns: minmax(100px, 0.8fr) minmax(110px, 1fr) minmax(140px, 1.2fr) minmax(110px, 1fr) minmax(80px, 0.7fr) 44px;
 }
 
 .reference-payload-row:last-child,
@@ -1368,6 +1367,14 @@ body {
     color: var(--nr-text-primary);
 }
 
+.reference-highlight-sub {
+    margin-top: 2px;
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: 0.4px;
+    color: var(--nr-text-secondary);
+}
+
 .reference-detail-content {
     display: grid;
     grid-template-columns: 256px minmax(0, 1fr);
@@ -1476,6 +1483,21 @@ body {
 
 .reference-field-input:focus {
     background: #f4f4f4;
+}
+
+.reference-field-helper {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: 0.4px;
+    color: var(--nr-warning);
+}
+
+.reference-field-helper .MuiSvgIcon-root {
+    color: var(--nr-warning);
 }
 
 .reference-permissions-group {
@@ -1591,6 +1613,10 @@ body {
 
 .reference-territory-table .reference-table-cell {
     white-space: normal;
+}
+
+.reference-territory-table .reference-table-row.requires-sync {
+    background: #fffaf0;
 }
 
 .reference-rate-tier-active {
