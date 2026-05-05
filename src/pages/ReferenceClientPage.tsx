@@ -1754,7 +1754,9 @@ function SalesTermsEditor({
                         fontSize: 12,
                         fontWeight: 800,
                         letterSpacing: 0,
-                        minHeight: 32
+                        minHeight: 32,
+                        color: 'var(--nr-text-primary)',
+                        '& .MuiSvgIcon-root': { color: 'var(--nr-text-primary)' }
                     }}
                 >
                     Add sales term
@@ -2095,114 +2097,112 @@ function CurveSyncDialog({
     onUpdateSalesTerm: (_salesTermId: string, _field: EditableSalesTermField, _value: string) => void;
     onSync: () => void;
 }): React.ReactElement {
+    const [activeScopeTab, setActiveScopeTab] = useState<CurveSyncScope>('client');
     const payeePayload = buildPayeePayload(client);
     const contractPayload = buildContractPayload(client);
     const hasSelectedScope = selectedScopes.length > 0 && (!selectedScopes.includes('deals') || selectedDealIds.length > 0);
     const isDealDisabled = (deal: TerritoryDeal): boolean =>
         !selectedDealIds.includes(deal.id) && hasSelectedTerritoryConflict(deal, selectedDealIds, client.territoryDeals);
 
+    const renderScopeTabLabel = (scope: CurveSyncScope, label: string): React.ReactNode => (
+        <span className="reference-sync-scope-tab-label">
+            <Checkbox
+                size="small"
+                checked={selectedScopes.includes(scope)}
+                onChange={() => onToggleScope(scope)}
+                onClick={(event) => event.stopPropagation()}
+                inputProps={{ 'aria-label': `Toggle ${label}` }}
+            />
+            <span>{label}</span>
+        </span>
+    );
+
     return (
         <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
             <DialogTitle>Sync with Curve</DialogTitle>
             <DialogContent>
                 <div className="reference-sync-modal">
-                    <div className="reference-sync-options" aria-label="Curve sync options">
-                        <div
-                            className={`reference-sync-option${selectedScopes.includes('client') ? ' selected' : ''}`}
-                        >
-                            <label className="reference-sync-option-header">
-                                <Checkbox
-                                    checked={selectedScopes.includes('client')}
-                                    onChange={() => onToggleScope('client')}
-                                />
-                                <span>
-                                    <strong className="reference-sync-option-title">Client data</strong>
-                                    <small>Payee fields: foreignId, name, alternateName, country, address, contactEmail, payeeCategories</small>
-                                </span>
-                            </label>
-                            {selectedScopes.includes('client') && (
-                                <div className="reference-sync-option-body" aria-label="Client NRP overwrites">
-                                    <h4>NRP overwrites</h4>
-                                    <PayloadTable rows={payeePayload} />
-                                </div>
-                            )}
-                        </div>
-                        <div
-                            className={`reference-sync-option${selectedScopes.includes('deals') ? ' selected' : ''}`}
-                        >
-                            <label className="reference-sync-option-header">
-                                <Checkbox
-                                    checked={selectedScopes.includes('deals')}
-                                    onChange={() => onToggleScope('deals')}
-                                />
-                                <span>
-                                    <strong className="reference-sync-option-title">Territory deals</strong>
-                                    <small>Contract fields: name, dates, payee, currency, salesTerms</small>
-                                </span>
-                            </label>
-                            {selectedScopes.includes('deals') && (
-                                <div className="reference-sync-option-body" aria-label="Territory deal NRP overwrites">
-                                    <h4>NRP overwrites</h4>
-                                    <PayloadTable rows={contractPayload} />
+                    <Tabs
+                        className="reference-sync-scope-tabs"
+                        value={activeScopeTab}
+                        onChange={(_event, value: CurveSyncScope) => setActiveScopeTab(value)}
+                        textColor="inherit"
+                        indicatorColor="primary"
+                    >
+                        <Tab value="client" label={renderScopeTabLabel('client', 'CLIENT DATA')} />
+                        <Tab value="deals" label={renderScopeTabLabel('deals', 'TERRITORY DEALS')} />
+                    </Tabs>
 
-                                    {client.territoryDeals.map((deal) => {
-                                        const isSelected = selectedDealIds.includes(deal.id);
-                                        const disabled = isDealDisabled(deal);
-                                        const dealSalesTerms = salesTerms.filter(
-                                            (term) => term.sourceDealId === deal.id
-                                        );
-                                        return (
-                                            <div
-                                                key={deal.id}
-                                                className={`reference-sync-deal-card${
-                                                    isSelected ? ' selected' : ''
-                                                }${disabled ? ' disabled' : ''}`}
-                                            >
-                                                <label
-                                                    className="reference-sync-deal-card-header"
-                                                    title={
-                                                        disabled
-                                                            ? 'Territory already covered by selected deal'
-                                                            : undefined
-                                                    }
-                                                >
-                                                    <Checkbox
-                                                        checked={isSelected}
-                                                        disabled={disabled}
-                                                        onChange={() => onToggleDeal(deal.id)}
-                                                    />
-                                                    <strong>{deal.territories}</strong>
-                                                </label>
-                                                <div className="reference-sync-deal-card-meta">
-                                                    <span>
-                                                        <strong>Start:</strong> {deal.startDate}{' '}
-                                                        <strong>End:</strong> {deal.endDate}
-                                                    </span>
-                                                    <span>
-                                                        <strong>Rate:</strong>{' '}
-                                                        {getDealRateLabel(deal, client.details.accountBalance, {
-                                                            showCurrentBadge: true
-                                                        })}
-                                                    </span>
-                                                </div>
-                                                {isSelected && (
-                                                    <div className="reference-sync-deal-card-sales-terms">
-                                                        <SalesTermsEditor
-                                                            title="Sales terms output"
-                                                            salesTerms={dealSalesTerms}
-                                                            onAddSalesTerm={onAddSalesTerm}
-                                                            onDeleteSalesTerm={onDeleteSalesTerm}
-                                                            onUpdateSalesTerm={onUpdateSalesTerm}
-                                                        />
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
+                    {activeScopeTab === 'client' && selectedScopes.includes('client') && (
+                        <div className="reference-sync-nested-card" aria-label="Client NRP overwrites">
+                            <h4>NRP overwrites</h4>
+                            <PayloadTable rows={payeePayload} />
                         </div>
-                    </div>
+                    )}
+
+                    {activeScopeTab === 'deals' && selectedScopes.includes('deals') && (
+                        <div className="reference-sync-tab-stack">
+                            <div className="reference-sync-nested-card" aria-label="Territory deal NRP overwrites">
+                                <h4>NRP overwrites</h4>
+                                <PayloadTable rows={contractPayload} />
+                            </div>
+
+                            {client.territoryDeals.map((deal) => {
+                                const isSelected = selectedDealIds.includes(deal.id);
+                                const disabled = isDealDisabled(deal);
+                                const dealSalesTerms = salesTerms.filter(
+                                    (term) => term.sourceDealId === deal.id
+                                );
+                                return (
+                                    <div
+                                        key={deal.id}
+                                        className={`reference-sync-deal-card${
+                                            isSelected ? ' selected' : ''
+                                        }${disabled ? ' disabled' : ''}`}
+                                    >
+                                        <label
+                                            className="reference-sync-deal-card-header"
+                                            title={
+                                                disabled
+                                                    ? 'Territory already covered by selected deal'
+                                                    : undefined
+                                            }
+                                        >
+                                            <Checkbox
+                                                checked={isSelected}
+                                                disabled={disabled}
+                                                onChange={() => onToggleDeal(deal.id)}
+                                            />
+                                            <strong>{deal.territories}</strong>
+                                        </label>
+                                        <div className="reference-sync-deal-card-meta">
+                                            <span>
+                                                <strong>Start:</strong> {deal.startDate}{' '}
+                                                <strong>End:</strong> {deal.endDate}
+                                            </span>
+                                            <span>
+                                                <strong>Rate:</strong>{' '}
+                                                {getDealRateLabel(deal, client.details.accountBalance, {
+                                                    showCurrentBadge: true
+                                                })}
+                                            </span>
+                                        </div>
+                                        {isSelected && (
+                                            <div className="reference-sync-deal-card-sales-terms">
+                                                <SalesTermsEditor
+                                                    title="Sales terms output"
+                                                    salesTerms={dealSalesTerms}
+                                                    onAddSalesTerm={onAddSalesTerm}
+                                                    onDeleteSalesTerm={onDeleteSalesTerm}
+                                                    onUpdateSalesTerm={onUpdateSalesTerm}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
             </DialogContent>
             <DialogActions>

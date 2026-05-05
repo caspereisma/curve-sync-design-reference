@@ -656,6 +656,53 @@ body {
     gap: 16px;
 }
 
+.reference-sync-option-body-stack {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    border-radius: 0;
+}
+
+.reference-sync-nested-card {
+    padding: 12px;
+    border: 1px solid var(--nr-border-default);
+    border-radius: var(--nr-radius-md);
+    background: var(--nr-bg-page);
+}
+
+.reference-sync-scope-tabs {
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--nr-divider);
+}
+
+.reference-sync-scope-tabs .MuiTab-root {
+    text-transform: none;
+    min-height: 48px;
+    padding: 0 16px;
+    color: var(--nr-text-primary);
+    opacity: 1;
+}
+
+.reference-sync-scope-tab-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    color: var(--nr-text-primary);
+}
+
+.reference-sync-scope-tab-label .MuiCheckbox-root {
+    padding: 4px;
+}
+
+.reference-sync-tab-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
 .reference-sync-option-body h4 {
     margin: 0 0 8px;
     font-size: 14px;
@@ -870,6 +917,7 @@ body {
 .reference-payload-row,
 .reference-sales-terms-row {
     display: grid;
+    align-items: center;
     min-height: 36px;
     border-bottom: 1px solid #ededed;
     color: var(--nr-text-primary);
@@ -962,6 +1010,7 @@ body {
     width: 100%;
     min-width: 0;
     height: 28px;
+    margin: 0;
     padding: 0 6px;
     box-sizing: border-box;
     border: 1px solid #d9d9dc;
