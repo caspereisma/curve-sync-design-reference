@@ -2492,20 +2492,35 @@ function ReferenceClientPage(): React.ReactElement {
                     <span className="reference-highlight-value">€35,997</span>
                 </div>
                 <div className="reference-highlight">
-                    <span className="reference-highlight-label">Recouped</span>
-                    <span className="reference-highlight-value">€35,997</span>
-                    <span className="reference-highlight-sub">Advanced: €50,000</span>
+                    <span className="reference-highlight-label">Advance</span>
+                    <div
+                        className="reference-advance-bar"
+                        role="progressbar"
+                        aria-label="Advance recouped"
+                        aria-valuemin={0}
+                        aria-valuemax={50000}
+                        aria-valuenow={35997}
+                    >
+                        <div className="reference-advance-bar-fill" style={{ width: '72%' }} />
+                    </div>
+                    <span className="reference-highlight-sub">€35,997 of €50,000 recouped</span>
                 </div>
                 <div className="reference-highlight">
-                    <span className="reference-highlight-label">Registered</span>
+                    <span className="reference-highlight-status reference-highlight-status-success">
+                        REGISTERED
+                    </span>
                     <span className="reference-highlight-value">33</span>
                 </div>
                 <div className="reference-highlight">
-                    <span className="reference-highlight-label">Submitted</span>
+                    <span className="reference-highlight-status reference-highlight-status-info">
+                        SUBMITTED
+                    </span>
                     <span className="reference-highlight-value">1</span>
                 </div>
                 <div className="reference-highlight">
-                    <span className="reference-highlight-label">To be registered</span>
+                    <span className="reference-highlight-status reference-highlight-status-warning">
+                        TO BE REGISTERED
+                    </span>
                     <span className="reference-highlight-value">1</span>
                 </div>
             </div>

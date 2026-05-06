@@ -1375,6 +1375,55 @@ body {
     color: var(--nr-text-secondary);
 }
 
+.reference-highlight-status {
+    display: inline-flex;
+    height: 20px;
+    padding: 4px 8px;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    box-sizing: border-box;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 14px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+
+.reference-highlight-status-success {
+    border: 1px solid #56cc82;
+    background: #e3f6e9;
+    color: #006218;
+}
+
+.reference-highlight-status-info {
+    border: 1px solid #74c7ed;
+    background: #e5f6fc;
+    color: #295e95;
+}
+
+.reference-highlight-status-warning {
+    border: 1px solid #ffb44c;
+    background: #fff3e0;
+    color: #ea4b04;
+}
+
+.reference-advance-bar {
+    width: 80%;
+    max-width: 160px;
+    height: 8px;
+    margin: 6px 0 4px;
+    border-radius: 4px;
+    background: var(--nr-warning);
+    overflow: hidden;
+}
+
+.reference-advance-bar-fill {
+    height: 100%;
+    background: var(--nr-success);
+}
+
 .reference-detail-content {
     display: grid;
     grid-template-columns: 256px minmax(0, 1fr);
