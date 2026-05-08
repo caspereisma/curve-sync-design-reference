@@ -1153,6 +1153,7 @@ body {
 
 .reference-deal-modal input {
     height: 30px;
+    margin: 0;
     padding: 0;
     border: 0;
     border-bottom: 1px solid #aaaaaa;
@@ -1449,7 +1450,7 @@ body {
 }
 
 .reference-side-nav a.active {
-    background: #d7d7d9;
+    background: transparent;
 }
 
 .reference-form-content {
@@ -1982,6 +1983,15 @@ body {
     border: 1px solid #8d8d8d;
     background: #ececed;
     color: #77777a;
+    letter-spacing: 0.08em;
+}
+
+.reference-status.current {
+    min-width: 88px;
+    justify-content: center;
+    border: 1px solid #56cc82;
+    background: #e3f6e9;
+    color: #006218;
     letter-spacing: 0.08em;
 }
 

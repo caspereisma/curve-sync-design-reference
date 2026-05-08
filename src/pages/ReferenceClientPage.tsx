@@ -8,7 +8,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -190,11 +190,11 @@ function AutoExtendField(): React.ReactElement {
 function AdvanceField(): React.ReactElement {
     return (
         <div className="reference-composite-field">
-            <InlineCheckboxField label="Advance" muted />
+            <InlineCheckboxField label="Advance" checked />
             <div className="reference-amount-field">
                 <span className="reference-field-label">Amount</span>
                 <div className="reference-field-value">
-                    <span>€</span>
+                    <span>€50,000</span>
                 </div>
             </div>
         </div>
@@ -261,7 +261,7 @@ function TerritoryDealsTable({
                         {deal.endDate}
                     </div>
                     <div className="reference-table-cell" role="cell">
-                        <span className="reference-status expired">{deal.status}</span>
+                        <span className={`reference-status ${deal.status.toLowerCase()}`}>{deal.status}</span>
                     </div>
                     <div className="reference-table-cell reference-table-icons" role="cell" aria-label="Deal actions">
                         <button
@@ -417,7 +417,7 @@ function MainDetailsTab({
                     <div className="reference-permissions-group">
                         <span className="reference-caption-with-icon">
                             External user access
-                            <InfoOutlinedIcon sx={{ fontSize: 17, color: '#777' }} />
+                            <VisibilityIcon sx={{ fontSize: 17, color: '#777' }} />
                         </span>
                         <label>
                             <Checkbox size="small" disabled />
@@ -930,7 +930,7 @@ function StatementsTab({ statements }: { statements: StatementSummary[] }): Reac
                     </div>
                     <div className="reference-table-cell statement-subtotal-header" role="columnheader">
                         <span>Subtotal</span>
-                        <InfoOutlinedIcon sx={{ fontSize: 16, color: '#777' }} />
+                        <VisibilityIcon sx={{ fontSize: 16, color: '#777' }} />
                     </div>
                     <div className="reference-table-cell" role="columnheader">Recoupment</div>
                     <div className="reference-table-cell" role="columnheader" aria-label="Row actions" />
@@ -1908,30 +1908,43 @@ function TerritoryDealDialog({
                     <section>
                         <h3>Territories</h3>
                         <div className="reference-territory-picker" aria-label="Territory groups">
-                            {[
-                                ['World', '249 items', deal.territories === 'World' ? '1 available, 1 selected' : '0 available'],
-                                ['Americas', '55 items', '0 available, 0 selected'],
-                                ['Oceania', '34 items', '0 available, 0 selected'],
-                                ['Africa', '58 items', '0 available, 0 selected'],
-                                ['Europe', '52 items', deal.territories.includes('Europe') ? '1 available, 1 selected' : '0 available, 0 selected'],
-                                ['Asia', '50 items', '0 available, 0 selected']
-                            ].map(([territory, items, status]) => {
-                                const isSelected =
-                                    (territory === 'World' && deal.territories === 'World') ||
-                                    (territory === 'Europe' && deal.territories.includes('Europe'));
-
-                                return (
-                                    <label
-                                        key={territory}
-                                        className={`reference-territory-picker-row${isSelected ? ' selected' : ''}`}
-                                    >
-                                        <input checked={isSelected} readOnly type="checkbox" />
-                                        <strong>{territory}</strong>
-                                        <span>{`(${items}, ${status})`}</span>
-                                        <KeyboardArrowDownIcon sx={{ marginLeft: 'auto', fontSize: 18 }} />
-                                    </label>
-                                );
-                            })}
+                            {(() => {
+                                const isWorldExcludingUs = deal.territories === 'World excluding US';
+                                const isUsOnly = deal.territories === 'US';
+                                const territoryRows: Array<{ name: string; items: number }> = [
+                                    { name: 'World', items: 249 },
+                                    { name: 'Americas', items: 55 },
+                                    { name: 'Oceania', items: 34 },
+                                    { name: 'Africa', items: 58 },
+                                    { name: 'Europe', items: 52 },
+                                    { name: 'Asia', items: 50 }
+                                ];
+                                return territoryRows.map(({ name, items }) => {
+                                    const isAmericas = name === 'Americas';
+                                    const indeterminate = isAmericas && (isWorldExcludingUs || isUsOnly);
+                                    const checked = !isAmericas && isWorldExcludingUs;
+                                    const selectedCount = checked ? items : indeterminate ? items - 1 : 0;
+                                    const status = `${items} items, ${selectedCount} available, ${selectedCount} selected`;
+                                    return (
+                                        <label
+                                            key={name}
+                                            className={`reference-territory-picker-row${
+                                                checked || indeterminate ? ' selected' : ''
+                                            }`}
+                                        >
+                                            <Checkbox
+                                                size="small"
+                                                checked={checked}
+                                                indeterminate={indeterminate}
+                                                readOnly
+                                            />
+                                            <strong>{name}</strong>
+                                            <span>{`(${status})`}</span>
+                                            <KeyboardArrowDownIcon sx={{ marginLeft: 'auto', fontSize: 18 }} />
+                                        </label>
+                                    );
+                                });
+                            })()}
                         </div>
                     </section>
                     <section>
@@ -2027,7 +2040,7 @@ function TerritoryDealDialog({
                 </div>
             </DialogContent>
             <DialogActions>
-                <Button color="inherit" onClick={onClose}>
+                <Button variant="outlined" color="inherit" onClick={onClose}>
                     Cancel
                 </Button>
                 <Button variant="contained" onClick={onSave}>
@@ -2335,12 +2348,9 @@ function ReferenceClientPage(): React.ReactElement {
     };
 
     const openDealEditor = (deal: TerritoryDeal): void => {
-        const defaultSlidingDeal = draftClient.territoryDeals.find((item) => item.rateType === 'sliding');
-        const dealToEdit = deal.rateType === 'sliding' ? deal : defaultSlidingDeal ?? deal;
-
         setEditingDeal({
-            ...dealToEdit,
-            slidingScale: dealToEdit.slidingScale?.map((tier) => ({ ...tier }))
+            ...deal,
+            slidingScale: deal.slidingScale?.map((tier) => ({ ...tier }))
         });
     };
 

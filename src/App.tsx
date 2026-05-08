@@ -3,7 +3,7 @@ import React, { useMemo, useState } from 'react';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import SearchIcon from '@mui/icons-material/Search';
 import SyncIcon from '@mui/icons-material/Sync';
@@ -459,7 +459,9 @@ function AssetSyncDialog({
                 </div>
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose}>Cancel</Button>
+                <Button variant="outlined" color="inherit" onClick={onClose}>
+                    Cancel
+                </Button>
                 <Button variant="contained" onClick={onSubmit}>
                     Create async action
                 </Button>
@@ -672,7 +674,7 @@ function ReferenceEventsPage({ events }: ReferenceEventsPageProps): React.ReactE
                                 aria-label={`Open details for ${event.description}`}
                                 onClick={() => setSelectedEvent(event)}
                             >
-                                <InfoOutlinedIcon fontSize="small" />
+                                <VisibilityIcon fontSize="small" />
                             </IconButton>
                         </div>
                     </div>

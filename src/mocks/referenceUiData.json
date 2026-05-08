@@ -119,8 +119,8 @@
           "rateType": "flat",
           "rate": "4%",
           "startDate": "2017-10-31",
-          "endDate": "2025-10-31",
-          "status": "EXPIRED",
+          "endDate": "2026-10-31",
+          "status": "CURRENT",
           "syncState": "requires-sync"
         },
         {
@@ -141,8 +141,8 @@
             }
           ],
           "startDate": "2018-01-01",
-          "endDate": "2025-01-29",
-          "status": "EXPIRED",
+          "endDate": "2026-01-29",
+          "status": "CURRENT",
           "syncState": "requires-sync"
         }
       ],
