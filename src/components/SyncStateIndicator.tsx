@@ -13,6 +13,8 @@ const syncStateLabels: Record<SyncState, string> = {
 interface SyncStateIndicatorProps {
     state: SyncState;
     showLabel?: boolean;
+    subject?: string;
+    plural?: boolean;
     onClick?: () => void;
     ariaLabel?: string;
 }
@@ -20,11 +22,21 @@ interface SyncStateIndicatorProps {
 function SyncStateIndicator({
     state,
     showLabel = false,
+    subject,
+    plural = false,
     onClick,
     ariaLabel
 }: SyncStateIndicatorProps): React.ReactElement {
     const className = `reference-sync-state ${state}${onClick ? ' clickable' : ''}`;
-    const label = syncStateLabels[state];
+    const stateLabel = syncStateLabels[state];
+    let label: string;
+    if (subject) {
+        const lowercased = stateLabel.charAt(0).toLowerCase() + stateLabel.slice(1);
+        const adjusted = plural ? lowercased.replace(/^requires\b/, 'require') : lowercased;
+        label = `${subject} ${adjusted}`;
+    } else {
+        label = stateLabel;
+    }
     const content = (
         <>
             <SyncIcon sx={{ fontSize: 18 }} />

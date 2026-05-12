@@ -9,10 +9,10 @@ import { FUGA_COLORS, fugaPalette } from '../fugaColors';
 const theme: Theme = createTheme({
     palette: {
         ...fugaPalette,
-        primary: { main: '#000000' },
+        primary: { main: FUGA_COLORS.GREY[800] },
         secondary: {
             main: '#fff',
-            background: '#404041',
+            background: FUGA_COLORS.GREY[800],
         },
         error: {
             main: '#F44139',
