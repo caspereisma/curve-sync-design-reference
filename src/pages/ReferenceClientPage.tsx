@@ -1753,7 +1753,6 @@ function SalesTermsEditor({
                     <div role="columnheader">State</div>
                     <div role="columnheader">Price cat</div>
                     <div role="columnheader">Source</div>
-                    <div role="columnheader">Deal type</div>
                     <div role="columnheader">Rate %</div>
                     <div role="columnheader" aria-label="Sales term actions" />
                 </div>
@@ -1809,7 +1808,6 @@ function SalesTermsEditor({
                                     ))}
                                 </select>
                             </div>
-                            <div role="cell">{renderInput(salesTerm, 'type', 'Deal type')}</div>
                             <div role="cell">{renderInput(salesTerm, 'rate', 'Rate')}</div>
                             <div role="cell">
                                 <button
@@ -2087,17 +2085,8 @@ function CurveSyncDialog({
     const isDealDisabled = (deal: TerritoryDeal): boolean =>
         !selectedDealIds.includes(deal.id) && hasSelectedTerritoryConflict(deal, selectedDealIds, client.territoryDeals);
 
-    const renderScopeTabLabel = (scope: CurveSyncScope, label: string): React.ReactNode => (
-        <span className="reference-sync-scope-tab-label">
-            <Checkbox
-                size="small"
-                checked={selectedScopes.includes(scope)}
-                onChange={() => onToggleScope(scope)}
-                onClick={(event) => event.stopPropagation()}
-                inputProps={{ 'aria-label': `Toggle ${label}` }}
-            />
-            <span>{label}</span>
-        </span>
+    const renderScopeTabLabel = (label: string): React.ReactNode => (
+        <span className="reference-sync-scope-tab-label">{label}</span>
     );
 
     return (
@@ -2112,8 +2101,8 @@ function CurveSyncDialog({
                         textColor="inherit"
                         indicatorColor="primary"
                     >
-                        <Tab value="client" label={renderScopeTabLabel('client', 'CLIENT DATA')} />
-                        <Tab value="deals" label={renderScopeTabLabel('deals', 'TERRITORY DEALS')} />
+                        <Tab value="client" label={renderScopeTabLabel('CLIENT DATA')} />
+                        <Tab value="deals" label={renderScopeTabLabel('TERRITORY DEALS')} />
                     </Tabs>
 
                     {activeScopeTab === 'client' && selectedScopes.includes('client') && (

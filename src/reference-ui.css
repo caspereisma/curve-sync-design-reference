@@ -435,8 +435,8 @@ body {
 }
 
 .reference-asset-sync-options {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    display: flex;
+    flex-direction: column;
     gap: 12px;
 }
 
@@ -932,7 +932,7 @@ body {
 }
 
 .reference-sales-terms-row {
-    grid-template-columns: minmax(100px, 0.8fr) minmax(110px, 1fr) minmax(140px, 1.2fr) minmax(110px, 1fr) minmax(80px, 0.7fr) 44px;
+    grid-template-columns: minmax(100px, 0.8fr) minmax(110px, 1fr) minmax(140px, 1.2fr) minmax(80px, 0.7fr) 44px;
 }
 
 .reference-payload-row:last-child,
@@ -2184,7 +2184,7 @@ body {
 }
 
 .reference-event-summary-cards .attention strong {
-    color: #d93030;
+    color: var(--nr-warning);
 }
 
 .reference-event-summary-context {
