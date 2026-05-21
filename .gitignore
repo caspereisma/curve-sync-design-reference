@@ -6,3 +6,8 @@ coverage/
 *.local
 .DS_Store
 .playwright-mcp/
+
+# Playwright runtime output (baselines + archive ARE committed)
+playwright-report/
+test-results/
+screenshots/diffs/

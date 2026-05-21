@@ -1,0 +1,104 @@
+{
+  "slug": "setup-baseline",
+  "summary": "Initial visual-regression setup",
+  "date": "2026-05-21",
+  "captured_at": "2026-05-21T12:26:15.100Z",
+  "base_url": "http://127.0.0.1:3101",
+  "routes": [
+    "/",
+    "/clients",
+    "/rights-holders",
+    "/events"
+  ],
+  "git": {
+    "branch": "chore/visual-regression-setup",
+    "commit": "d6f8163",
+    "remote": "https://github.com/caspereisma/curve-sync-design-reference.git"
+  },
+  "captures": [
+    {
+      "route": "/",
+      "viewport": "desktop-1440",
+      "file": "home-desktop-1440.png",
+      "width": 1440,
+      "height": 1024
+    },
+    {
+      "route": "/",
+      "viewport": "tablet-768",
+      "file": "home-tablet-768.png",
+      "width": 768,
+      "height": 1024
+    },
+    {
+      "route": "/",
+      "viewport": "mobile-375",
+      "file": "home-mobile-375.png",
+      "width": 375,
+      "height": 812
+    },
+    {
+      "route": "/clients",
+      "viewport": "desktop-1440",
+      "file": "clients-desktop-1440.png",
+      "width": 1440,
+      "height": 1024
+    },
+    {
+      "route": "/clients",
+      "viewport": "tablet-768",
+      "file": "clients-tablet-768.png",
+      "width": 768,
+      "height": 1024
+    },
+    {
+      "route": "/clients",
+      "viewport": "mobile-375",
+      "file": "clients-mobile-375.png",
+      "width": 375,
+      "height": 812
+    },
+    {
+      "route": "/rights-holders",
+      "viewport": "desktop-1440",
+      "file": "rights-holders-desktop-1440.png",
+      "width": 1440,
+      "height": 1024
+    },
+    {
+      "route": "/rights-holders",
+      "viewport": "tablet-768",
+      "file": "rights-holders-tablet-768.png",
+      "width": 768,
+      "height": 1024
+    },
+    {
+      "route": "/rights-holders",
+      "viewport": "mobile-375",
+      "file": "rights-holders-mobile-375.png",
+      "width": 375,
+      "height": 812
+    },
+    {
+      "route": "/events",
+      "viewport": "desktop-1440",
+      "file": "events-desktop-1440.png",
+      "width": 1440,
+      "height": 1024
+    },
+    {
+      "route": "/events",
+      "viewport": "tablet-768",
+      "file": "events-tablet-768.png",
+      "width": 768,
+      "height": 1024
+    },
+    {
+      "route": "/events",
+      "viewport": "mobile-375",
+      "file": "events-mobile-375.png",
+      "width": 375,
+      "height": 812
+    }
+  ]
+}
