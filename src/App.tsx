@@ -9,7 +9,6 @@ import SearchIcon from '@mui/icons-material/Search';
 import SyncIcon from '@mui/icons-material/Sync';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Checkbox from '@mui/material/Checkbox';
 import CssBaseline from '@mui/material/CssBaseline';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
@@ -72,13 +71,11 @@ interface ReferenceTopBarProps {
 }
 
 interface AssetSyncDialogProps {
-    excludedClientIds: string[];
     mode: AssetSyncMode;
     open: boolean;
     onClose: () => void;
     onModeChange: (_mode: AssetSyncMode) => void;
     onSubmit: () => void;
-    onToggleClient: (_clientId: string) => void;
 }
 
 interface ReferenceEventsPageProps {
@@ -307,33 +304,12 @@ function ReferenceTopBar({ onOpenAssetSync }: ReferenceTopBarProps): React.React
 }
 
 function AssetSyncDialog({
-    excludedClientIds,
     mode,
     open,
     onClose,
     onModeChange,
-    onSubmit,
-    onToggleClient
+    onSubmit
 }: AssetSyncDialogProps): React.ReactElement {
-    const [clientDropdownOpen, setClientDropdownOpen] = useState(false);
-    const [clientSearch, setClientSearch] = useState('');
-    const selectedClients = referenceRightsHolders.filter((client) => excludedClientIds.includes(client.id));
-    const filteredClients = referenceRightsHolders.filter((client) =>
-        client.clientName.toLowerCase().includes(clientSearch.trim().toLowerCase())
-    );
-    const allClientsSelected = excludedClientIds.length === referenceRightsHolders.length;
-    const someClientsSelected = excludedClientIds.length > 0 && !allClientsSelected;
-
-    const toggleAllClients = (): void => {
-        const shouldSelectAll = !allClientsSelected;
-        referenceRightsHolders.forEach((client) => {
-            const isSelected = excludedClientIds.includes(client.id);
-            if ((shouldSelectAll && !isSelected) || (!shouldSelectAll && isSelected)) {
-                onToggleClient(client.id);
-            }
-        });
-    };
-
     return (
         <Dialog
             open={open}
@@ -376,86 +352,6 @@ function AssetSyncDialog({
                         </div>
                     </section>
 
-                    <section>
-                        <h3>Exclude clients from sync</h3>
-                        <div className="reference-client-filter">
-                            <button
-                                type="button"
-                                className="reference-client-filter-trigger"
-                                aria-expanded={clientDropdownOpen}
-                                aria-controls="asset-sync-client-list"
-                                onClick={() => setClientDropdownOpen((isOpen) => !isOpen)}
-                            >
-                                <span className="reference-client-filter-values">
-                                    {selectedClients.length === 0 && <span className="reference-client-filter-placeholder">Client</span>}
-                                    {selectedClients.slice(0, 2).map((client) => (
-                                        <span key={client.id} className="reference-client-filter-chip">
-                                            {client.clientName}
-                                            <span
-                                                role="button"
-                                                tabIndex={0}
-                                                aria-label={`Remove ${client.clientName} from excluded clients`}
-                                                onClick={(event) => {
-                                                    event.stopPropagation();
-                                                    onToggleClient(client.id);
-                                                }}
-                                                onKeyDown={(event) => {
-                                                    if (event.key === 'Enter' || event.key === ' ') {
-                                                        event.preventDefault();
-                                                        event.stopPropagation();
-                                                        onToggleClient(client.id);
-                                                    }
-                                                }}
-                                            >
-                                                ×
-                                            </span>
-                                        </span>
-                                    ))}
-                                    {selectedClients.length > 2 && (
-                                        <span className="reference-client-filter-count">+{selectedClients.length - 2}</span>
-                                    )}
-                                </span>
-                                <ExpandMoreIcon fontSize="small" />
-                            </button>
-
-                            {clientDropdownOpen && (
-                                <div className="reference-client-filter-menu" id="asset-sync-client-list">
-                                    <input
-                                        aria-label="Search clients"
-                                        placeholder="Search clients..."
-                                        value={clientSearch}
-                                        onChange={(event) => setClientSearch(event.target.value)}
-                                    />
-                                    <label className="reference-client-filter-select-all">
-                                        <Checkbox
-                                            size="small"
-                                            checked={allClientsSelected}
-                                            indeterminate={someClientsSelected}
-                                            onChange={toggleAllClients}
-                                            inputProps={{ 'aria-label': 'Select all clients' }}
-                                        />
-                                        <span>Select all</span>
-                                    </label>
-                                    <div className="reference-client-filter-options">
-                                        {filteredClients.map((client) => (
-                                            <label
-                                                key={client.id}
-                                                className={excludedClientIds.includes(client.id) ? 'selected' : ''}
-                                            >
-                                                <Checkbox
-                                                    size="small"
-                                                    checked={excludedClientIds.includes(client.id)}
-                                                    onChange={() => onToggleClient(client.id)}
-                                                    inputProps={{ 'aria-label': `Exclude ${client.clientName}` }}
-                                                />
-                                                <span>{client.clientName}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </section>
                 </div>
             </DialogContent>
             <DialogActions>
@@ -495,12 +391,9 @@ function EventDetailsDialog({
     onClose: () => void;
 }): React.ReactElement {
     const totals = getSummaryTotals(event?.summary ?? []);
-    const failedAssets = (event?.summary ?? []).flatMap((clientSummary) =>
-        clientSummary.failedAssets.map((failedAsset) => ({
-            ...failedAsset,
-            clientName: clientSummary.clientName
-        }))
-    );
+    const isSingleClient = (event?.summary.length ?? 0) === 1;
+    const subjectName = isSingleClient ? event?.summary[0]?.clientName : 'all clients';
+    const titleText = subjectName ? `Curve sync details — ${subjectName}` : 'Curve sync details';
 
     return (
         <Dialog
@@ -511,7 +404,7 @@ function EventDetailsDialog({
             aria-labelledby="event-details-dialog-title"
             PaperProps={{ className: 'reference-event-details-dialog-paper' }}
         >
-            <DialogTitle id="event-details-dialog-title">Curve sync details</DialogTitle>
+            <DialogTitle id="event-details-dialog-title">{titleText}</DialogTitle>
             <DialogContent dividers>
                 {event && (
                     <div className="reference-event-details-modal">
@@ -529,75 +422,47 @@ function EventDetailsDialog({
                                 <strong>{totals.updatedAssetsCount.toLocaleString()}</strong>
                             </div>
                             <div className={totals.failedAssetsCount > 0 ? 'attention' : ''}>
-                                <span>Failed</span>
+                                <span>Existing skipped</span>
                                 <strong>{totals.failedAssetsCount.toLocaleString()}</strong>
                             </div>
                         </div>
 
-                        <section>
-                            <h3>Client summary</h3>
-                            <div className="reference-event-client-summary">
-                                <div className="reference-event-summary-context">
-                                    <span>CURVE_SYNC</span>
-                                    <strong>{event.description}</strong>
-                                    <span className={`reference-event-status ${event.status.toLowerCase().replace(/\s+/g, '-')}`}>
-                                        {event.status}
-                                    </span>
-                                </div>
-                                <div className="reference-event-client-summary-row client-summary-header">
-                                    <div>Client</div>
-                                    <div>Processed</div>
-                                    <div>Created</div>
-                                    <div>Updated</div>
-                                    <div>Failed</div>
-                                    <div>Status</div>
-                                </div>
-                                {event.summary.map((clientSummary) => (
-                                    <div key={clientSummary.clientId} className="reference-event-client-summary-row">
-                                        <div>{clientSummary.clientName}</div>
-                                        <div>{clientSummary.processedAssetsCount.toLocaleString()}</div>
-                                        <div>{clientSummary.createdAssetsCount.toLocaleString()}</div>
-                                        <div>{clientSummary.updatedAssetsCount.toLocaleString()}</div>
-                                        <div>{clientSummary.failedAssetsCount.toLocaleString()}</div>
-                                        <div>
-                                            <span
-                                                className={`reference-event-status ${clientSummary.status.toLowerCase().replace(/\s+/g, '-')}`}
-                                            >
-                                                {clientSummary.status}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
-
-                        {failedAssets.length > 0 && (
+                        {!isSingleClient && (
                             <section>
-                                <h3>Failed assets</h3>
-                                <div className="reference-event-failed-assets">
-                                    <div className="reference-event-failed-assets-row client-summary-header">
-                                        <div>Client</div>
-                                        <div>ISRC</div>
-                                        <div>Track title</div>
-                                        <div>Reason</div>
+                                <h3>Client summary</h3>
+                                <div className="reference-event-client-summary">
+                                    <div className="reference-event-summary-context">
+                                        <span>CURVE_SYNC</span>
+                                        <strong>{event.description}</strong>
+                                        <span className={`reference-event-status ${event.status.toLowerCase().replace(/\s+/g, '-')}`}>
+                                            {event.status}
+                                        </span>
                                     </div>
-                                    {failedAssets.slice(0, 8).map((failedAsset) => (
-                                        <div
-                                            key={`${failedAsset.clientName}-${failedAsset.isrc}-${failedAsset.title}`}
-                                            className="reference-event-failed-assets-row"
-                                        >
-                                            <div>{failedAsset.clientName}</div>
-                                            <div>{failedAsset.isrc}</div>
-                                            <div>{failedAsset.title}</div>
-                                            <div>{failedAsset.error}</div>
+                                    <div className="reference-event-client-summary-row client-summary-header">
+                                        <div>Client</div>
+                                        <div>Processed</div>
+                                        <div>Created</div>
+                                        <div>Updated</div>
+                                        <div>Existing skipped</div>
+                                        <div>Status</div>
+                                    </div>
+                                    {event.summary.map((clientSummary) => (
+                                        <div key={clientSummary.clientId} className="reference-event-client-summary-row">
+                                            <div>{clientSummary.clientName}</div>
+                                            <div>{clientSummary.processedAssetsCount.toLocaleString()}</div>
+                                            <div>{clientSummary.createdAssetsCount.toLocaleString()}</div>
+                                            <div>{clientSummary.updatedAssetsCount.toLocaleString()}</div>
+                                            <div>{clientSummary.failedAssetsCount.toLocaleString()}</div>
+                                            <div>
+                                                <span
+                                                    className={`reference-event-status ${clientSummary.status.toLowerCase().replace(/\s+/g, '-')}`}
+                                                >
+                                                    {clientSummary.status}
+                                                </span>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
-                                {failedAssets.length > 8 && (
-                                    <p className="reference-event-overflow-note">
-                                        Showing 8 of {failedAssets.length.toLocaleString()} failed assets.
-                                    </p>
-                                )}
                             </section>
                         )}
                     </div>
@@ -691,46 +556,28 @@ function ReferenceShell(): React.ReactElement {
     const history = useHistory();
     const [assetSyncDialogOpen, setAssetSyncDialogOpen] = useState(false);
     const [assetSyncMode, setAssetSyncMode] = useState<AssetSyncMode>('newly-ingested');
-    const [excludedClientIds, setExcludedClientIds] = useState<string[]>([]);
     const [assetSyncEvents, setAssetSyncEvents] = useState<AssetSyncEvent[]>([]);
 
-    const toggleExcludedClient = (clientId: string): void => {
-        setExcludedClientIds((currentIds) =>
-            currentIds.includes(clientId)
-                ? currentIds.filter((id) => id !== clientId)
-                : [...currentIds, clientId]
-        );
-    };
-
     const createAssetSyncEvent = (): void => {
-        const excludedNames = referenceRightsHolders
-            .filter((client) => excludedClientIds.includes(client.id))
-            .map((client) => client.clientName);
         const syncTarget = assetSyncMode === 'all-assets' ? 'all assets' : 'newly ingested assets';
-        const description =
-            excludedNames.length > 0
-                ? `Curve sync ${syncTarget} excluding ${excludedNames.join(', ')}`
-                : `Curve sync ${syncTarget} for all clients`;
-        const pendingSummary = referenceRightsHolders
-            .filter((client) => !excludedClientIds.includes(client.id))
-            .slice(0, 6)
-            .map((client) => ({
-                clientId: client.id,
-                clientName: client.clientName,
-                status: 'pending' as AssetSyncStatus,
-                processedAssetsCount: 0,
-                createdAssetsCount: 0,
-                updatedAssetsCount: 0,
-                failedAssetsCount: 0,
-                failedAssets: []
-            }));
+        const description = `Curve sync ${syncTarget} for all clients`;
+        const pendingSummary = referenceRightsHolders.slice(0, 6).map((client) => ({
+            clientId: client.id,
+            clientName: client.clientName,
+            status: 'pending' as AssetSyncStatus,
+            processedAssetsCount: 0,
+            createdAssetsCount: 0,
+            updatedAssetsCount: 0,
+            failedAssetsCount: 0,
+            failedAssets: []
+        }));
 
         setAssetSyncEvents((currentEvents) => [
             {
                 id: `event-created-${currentEvents.length + 1}`,
                 description,
                 mode: assetSyncMode,
-                excludedClientIds,
+                excludedClientIds: [],
                 summary: pendingSummary,
                 user: 'Admin User',
                 date: '28/04/2026 15:00',
@@ -775,13 +622,11 @@ function ReferenceShell(): React.ReactElement {
                 </Switch>
             </main>
             <AssetSyncDialog
-                excludedClientIds={excludedClientIds}
                 mode={assetSyncMode}
                 open={assetSyncDialogOpen}
                 onClose={() => setAssetSyncDialogOpen(false)}
                 onModeChange={setAssetSyncMode}
                 onSubmit={createAssetSyncEvent}
-                onToggleClient={toggleExcludedClient}
             />
         </div>
     );
