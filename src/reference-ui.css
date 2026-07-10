@@ -944,6 +944,61 @@ body {
     background: #fffaf0;
 }
 
+.reference-sync-payee-section h4 {
+    margin: 0 0 8px;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 18px;
+    letter-spacing: 0.1px;
+    color: var(--nr-text-primary);
+}
+
+.reference-payee-table-scroll {
+    overflow-x: auto;
+    border-top: 1px solid #ededed;
+}
+
+.reference-payee-table {
+    border-collapse: collapse;
+    width: 100%;
+    color: var(--nr-text-primary);
+    font-size: 14px;
+    line-height: 19px;
+    letter-spacing: 0.25px;
+}
+
+.reference-payee-table th,
+.reference-payee-table td {
+    min-height: 36px;
+    padding: 8px 10px;
+    border-bottom: 1px solid #ededed;
+    text-align: left;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.reference-payee-table thead th {
+    background: #fafafa;
+    font-weight: 700;
+    letter-spacing: 0.1px;
+}
+
+.reference-payee-table tbody th {
+    position: sticky;
+    left: 0;
+    background: #fafafa;
+    font-weight: 700;
+}
+
+.reference-payee-table tbody tr.reference-payee-curve-row th {
+    background: #ffffff;
+}
+
+.reference-payee-table tr:last-child th,
+.reference-payee-table tr:last-child td {
+    border-bottom: 0;
+}
+
 .reference-payload-row.immutable {
     color: #66666a;
 }
