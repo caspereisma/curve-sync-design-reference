@@ -1668,35 +1668,42 @@ const buildContractPayload = (client: RightsHolderClient): CurvePayloadField[] =
     ];
 };
 
-function PayloadTable({ rows }: { rows: CurvePayloadField[] }): React.ReactElement {
+function TransposedPayloadTable({ rows }: { rows: CurvePayloadField[] }): React.ReactElement {
     return (
-        <div className="reference-payload-table" role="table">
-            <div className="reference-payload-row header" role="row">
-                <div role="columnheader">Field</div>
-                <div role="columnheader">Curve</div>
-                <div role="columnheader">NR</div>
-            </div>
-            {rows.map((row) => {
-                const isChanged = !row.immutable && shouldHighlightPayloadChange(row.curveValue, row.nrValue);
+        <div className="reference-payee-table-scroll">
+            <table className="reference-payee-table">
+                <thead>
+                    <tr>
+                        <th aria-label="Source" />
+                        {rows.map((row) => (
+                            <th key={row.id} scope="col">
+                                {row.field}
+                            </th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th scope="row">NR</th>
+                        {rows.map((row) => (
+                            <td key={row.id}>{row.nrValue}</td>
+                        ))}
+                    </tr>
+                    <tr className="reference-payee-curve-row">
+                        <th scope="row">Curve</th>
+                        {rows.map((row) => {
+                            const isChanged =
+                                !row.immutable && shouldHighlightPayloadChange(row.curveValue, row.nrValue);
 
-                return (
-                    <div
-                        key={row.id}
-                        className={`reference-payload-row${isChanged ? ' changed' : ''}${
-                            row.immutable ? ' immutable' : ''
-                        }`}
-                        role="row"
-                    >
-                        <div role="cell">{row.field}</div>
-                        <div role="cell" className={isChanged ? 'reference-before-value' : undefined}>
-                            {row.curveValue}
-                        </div>
-                        <div role="cell" className={isChanged ? 'reference-after-value' : undefined}>
-                            {row.nrValue}
-                        </div>
-                    </div>
-                );
-            })}
+                            return (
+                                <td key={row.id} className={isChanged ? 'reference-after-value' : undefined}>
+                                    {row.curveValue}
+                                </td>
+                            );
+                        })}
+                    </tr>
+                </tbody>
+            </table>
         </div>
     );
 }
@@ -2106,19 +2113,20 @@ function CurveSyncDialog({
                     </Tabs>
 
                     {activeScopeTab === 'client' && selectedScopes.includes('client') && (
-                        <div className="reference-sync-nested-card" aria-label="Client NRP overwrites">
-                            <h4>NRP overwrites</h4>
-                            <PayloadTable rows={payeePayload} />
+                        <div className="reference-sync-tab-stack">
+                            <div className="reference-sync-payee-section" aria-label="Payee data">
+                                <h4>Payee data</h4>
+                                <TransposedPayloadTable rows={payeePayload} />
+                            </div>
+                            <div className="reference-sync-payee-section" aria-label="Contract data">
+                                <h4>Contract data</h4>
+                                <TransposedPayloadTable rows={contractPayload} />
+                            </div>
                         </div>
                     )}
 
                     {activeScopeTab === 'deals' && selectedScopes.includes('deals') && (
                         <div className="reference-sync-tab-stack">
-                            <div className="reference-sync-nested-card" aria-label="Territory deal NRP overwrites">
-                                <h4>NRP overwrites</h4>
-                                <PayloadTable rows={contractPayload} />
-                            </div>
-
                             {client.territoryDeals.map((deal) => {
                                 const isSelected = selectedDealIds.includes(deal.id);
                                 const disabled = isDealDisabled(deal);
