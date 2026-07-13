@@ -14,6 +14,8 @@ import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import RestoreIcon from '@mui/icons-material/Restore';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
+import CloseIcon from '@mui/icons-material/Close';
+import Tooltip from '@mui/material/Tooltip';
 import SyncIcon from '@mui/icons-material/Sync';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
@@ -34,9 +36,7 @@ import {
     getReferenceRightsHolderById,
     referenceCurveSyncData,
     type CmoRegistration,
-    type CurveSalesTermPriceCategory,
     type RecoupmentState,
-    type ReferenceCurveSalesTerm,
     type RepertoireAsset,
     type RightsHolderClient,
     type RightsHolderClientDetails,
@@ -283,20 +283,16 @@ function TerritoryDealsTable({
 
 function MainDetailsTab({
     client,
-    dealSyncStates,
     isEditing,
     onClientFieldChange,
     onDetailFieldChange,
-    onEditDeal,
-    onOpenDealSync
+    onEditDeal
 }: {
     client: RightsHolderClient;
-    dealSyncStates: Record<string, SyncState>;
     isEditing: boolean;
     onClientFieldChange: (_field: 'clientName' | 'dealStartDate' | 'tier', _value: string) => void;
     onDetailFieldChange: (_field: keyof RightsHolderClientDetails, _value: string) => void;
     onEditDeal: (_deal: TerritoryDeal) => void;
-    onOpenDealSync: () => void;
 }): React.ReactElement {
     const [activeSection, setActiveSection] = useState(mainDetailSections[0].id);
     const { details } = client;
@@ -1152,113 +1148,11 @@ interface CurvePayloadField {
     immutable?: boolean;
 }
 
-type SalesTermStatus = 'unchanged' | 'created' | 'updated';
-
-type CurveSalesTermConfig = ReferenceCurveSalesTerm;
-
-type EditableSalesTermField = Exclude<keyof CurveSalesTermConfig, 'id' | 'sourceDealId'>;
-
 const emptyValue = 'Empty';
 const payeeId = referenceCurveSyncData.contract.payeeId;
-const priceCategoryOptions: CurveSalesTermPriceCategory[] = ['Performer', 'Rightsholder'];
-const sourceOptions = [
-    'ABRAMUS BR',
-    'ACTRA RACS CA',
-    'ADAMI FR',
-    'AFM-AFTRA US',
-    'AGATA LT',
-    'AGEDI ES',
-    'AIE ES',
-    'APOLLON GR',
-    'AUDIOGEST PT',
-    'CONNECT CA',
-    'CPRA JP',
-    'CREDIDAM RO',
-    'EFU EE',
-    'EJI HU',
-    'ERATO GR',
-    'GDA PT',
-    'GRAMEX DK',
-    'GRAMEX FI',
-    'GRAMMO GR',
-    'GRAMO NO',
-    'GVL DE',
-    'HUZIP HR',
-    'IFPI SE',
-    'IMAGIA BE',
-    'INTERGRAM CZ',
-    'IPF ZAVOD SI',
-    'ITSRIGHT IT',
-    'LAIPA LV',
-    'LSG AT',
-    'MAHASZ HU',
-    'MROC CA',
-    'NORMA NL',
-    'NUOVO IMAIE IT',
-    'PIRS',
-    'PLAYRIGHT BE',
-    'PPCA AU',
-    'PPL UK',
-    'PROPHON BG',
-    'RAAP IE',
-    'RMNZ NZ',
-    'SAMI SE',
-    'SAMPRA ZA',
-    'SCF IT',
-    'SCPP FR',
-    'SENA NL',
-    'SIMIM BE',
-    'SLOVGRAM SK',
-    'SoundExchange US',
-    'SPEDIDAM FR',
-    'SPPF FR',
-    'STOART PL',
-    'SWISSPERFORM CH',
-    'UMA UA',
-    'ZAPRAF HR',
-    'ZPAV PL',
-    'KOBALT',
-    'VPL UK',
-    'PPNZ NZ',
-    'PPI IE',
-    'SENA',
-    'PPNZ AU',
-    'RIAJ JP',
-    'KNR',
-    'PI RS',
-    'AFM SAGAFTRA US',
-    'SOUNDEXCHANGE US',
-    'ALL',
-    'US sources',
-    'UK Sources',
-    'IE Sources',
-    'AU/NZ Sources'
-].sort((firstSource, secondSource) => firstSource.localeCompare(secondSource, undefined, { sensitivity: 'base' }));
-
-const territorySourceOptions: Record<string, string[]> = {
-    us: ['AFM-AFTRA US', 'AFM SAGAFTRA US', 'SoundExchange US', 'SOUNDEXCHANGE US', 'US sources']
-};
-
-const currentCurveSalesTerms = referenceCurveSyncData.salesTerms;
-
-const toCurveRate = (rate: string): string => {
-    const numericRate = parseRateValue(rate);
-
-    if (!numericRate && !rate.trim().startsWith('0')) {
-        return rate;
-    }
-
-    return `${100 - numericRate}%`;
-};
 
 const parseMoneyValue = (value: string): number => {
     const numericValue = Number(value.replace(/[€, $]/g, '').replace(/,/g, '').trim());
-
-    return Number.isFinite(numericValue) ? numericValue : 0;
-};
-
-const parseRateValue = (value: string): number => {
-    const numericValue = Number(value.replace('%', '').replace(',', '.').trim());
 
     return Number.isFinite(numericValue) ? numericValue : 0;
 };
@@ -1346,97 +1240,6 @@ const shouldHighlightPayloadChange = (curveValue: string, sentValue: string): bo
     return !(isEmptyPayloadValue(curveValue) && isEmptyPayloadValue(sentValue));
 };
 
-const normalizeTerritory = (territory: string): string =>
-    territory.toLowerCase().replace(/[.,]/g, '').replace(/\s+/g, ' ').trim();
-
-const isWorldTerritory = (territory: string): boolean => {
-    const normalizedTerritory = normalizeTerritory(territory);
-
-    return (
-        !normalizedTerritory.includes('excluding') &&
-        (normalizedTerritory === 'ww' || normalizedTerritory === 'world' || normalizedTerritory === 'worldwide')
-    );
-};
-
-const isWorldExcludingUsTerritory = (territory: string): boolean => {
-    const normalizedTerritory = normalizeTerritory(territory);
-
-    return (
-        (normalizedTerritory.includes('ww') ||
-            normalizedTerritory.includes('world') ||
-            normalizedTerritory.includes('worldwide')) &&
-        normalizedTerritory.includes('excluding') &&
-        (normalizedTerritory.includes('us') || normalizedTerritory.includes('united states'))
-    );
-};
-
-const isUnitedStatesTerritory = (territory: string): boolean => {
-    const normalizedTerritory = normalizeTerritory(territory);
-
-    return normalizedTerritory === 'us' || normalizedTerritory === 'usa' || normalizedTerritory === 'united states';
-};
-
-const doTerritoriesConflict = (firstTerritory: string, secondTerritory: string): boolean => {
-    if (isWorldTerritory(firstTerritory) || isWorldTerritory(secondTerritory)) {
-        return true;
-    }
-
-    if (isWorldExcludingUsTerritory(firstTerritory)) {
-        return !isUnitedStatesTerritory(secondTerritory);
-    }
-
-    if (isWorldExcludingUsTerritory(secondTerritory)) {
-        return !isUnitedStatesTerritory(firstTerritory);
-    }
-
-    return normalizeTerritory(firstTerritory) === normalizeTerritory(secondTerritory);
-};
-
-const hasSelectedTerritoryConflict = (
-    deal: TerritoryDeal,
-    selectedDealIds: string[],
-    deals: TerritoryDeal[]
-): boolean =>
-    deals.some(
-        (selectedDeal) =>
-            selectedDealIds.includes(selectedDeal.id) &&
-            selectedDeal.id !== deal.id &&
-            doTerritoriesConflict(deal.territories, selectedDeal.territories)
-    );
-
-const getDefaultSelectedDealIds = (deals: TerritoryDeal[]): string[] => {
-    const worldDeal = deals.find((deal) => isWorldTerritory(deal.territories));
-
-    if (worldDeal) {
-        return [worldDeal.id];
-    }
-
-    return deals.reduce<string[]>((selectedDealIds, deal) => {
-        if (hasSelectedTerritoryConflict(deal, selectedDealIds, deals)) {
-            return selectedDealIds;
-        }
-
-        return [...selectedDealIds, deal.id];
-    }, []);
-};
-
-const getAggregateDealSyncState = (
-    deals: TerritoryDeal[],
-    dealSyncStates: Record<string, SyncState>
-): SyncState => {
-    const states = deals.map((deal) => dealSyncStates[deal.id] ?? deal.syncState);
-
-    if (states.includes('requires-sync')) {
-        return 'requires-sync';
-    }
-
-    if (states.includes('not-synced')) {
-        return 'not-synced';
-    }
-
-    return 'synced';
-};
-
 const buildPayeePayload = (client: RightsHolderClient): CurvePayloadField[] => [
     {
         id: 'payee-foreign-id',
@@ -1491,162 +1294,6 @@ const buildPayeePayload = (client: RightsHolderClient): CurvePayloadField[] => [
     }
 ];
 
-const createSalesTermConfig = ({
-    deal,
-    id,
-    priceCategory,
-    rate,
-    source = 'ALL',
-    territory = 'All'
-}: {
-    deal: TerritoryDeal;
-    id: string;
-    priceCategory: CurveSalesTermPriceCategory;
-    rate: string;
-    source?: string;
-    territory?: string;
-}): CurveSalesTermConfig => ({
-    id,
-    sourceDealId: deal.id,
-    catType: 'All',
-    catalogueGroup: 'All',
-    territory,
-    channel: 'All',
-    configuration: 'All',
-    priceCategory,
-    source,
-    type: 'Net Receipts',
-    rate,
-    multiplier: '',
-    reductionRate: '',
-    reserve: ''
-});
-
-const getTerritorySpecificSources = (territory: string): string[] => {
-    if (isUnitedStatesTerritory(territory)) {
-        return territorySourceOptions.us.filter(
-            (source, index, sources) =>
-                index ===
-                sources.findIndex(
-                    (candidateSource) =>
-                        candidateSource.toLowerCase().trim() === source.toLowerCase().trim()
-                )
-        );
-    }
-
-    return [];
-};
-
-const buildDefaultSalesTerms = (client: RightsHolderClient): CurveSalesTermConfig[] => {
-    const broadDeal =
-        client.territoryDeals.find((deal) => isWorldTerritory(deal.territories) || isWorldExcludingUsTerritory(deal.territories)) ??
-        client.territoryDeals[0];
-
-    if (!broadDeal) {
-        return [];
-    }
-
-    const globalTerms: CurveSalesTermConfig[] = [
-        createSalesTermConfig({
-            deal: broadDeal,
-            id: 'global-performer-default',
-            priceCategory: 'Performer',
-            rate: '0%'
-        }),
-        createSalesTermConfig({
-            deal: broadDeal,
-            id: 'global-rightsholder-default',
-            priceCategory: 'Rightsholder',
-            rate: toCurveRate(getEffectiveDealRate(broadDeal, client.details.accountBalance))
-        })
-    ];
-
-    const territorySpecificTerms = client.territoryDeals.flatMap((deal) =>
-        getTerritorySpecificSources(deal.territories).map((source) =>
-            createSalesTermConfig({
-                deal,
-                id: `${deal.id}-${source.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-                priceCategory: 'Rightsholder',
-                source,
-                territory: deal.territories,
-                rate: toCurveRate(getEffectiveDealRate(deal, client.details.accountBalance))
-            })
-        )
-    );
-
-    return [...globalTerms, ...territorySpecificTerms];
-};
-
-const refreshDefaultSalesTermRates = (
-    client: RightsHolderClient,
-    salesTerms: CurveSalesTermConfig[]
-): CurveSalesTermConfig[] =>
-    salesTerms.map((salesTerm) => {
-        const deal = client.territoryDeals.find((item) => item.id === salesTerm.sourceDealId);
-        const isAutoManagedGlobalRightsholder = salesTerm.id === 'global-rightsholder-default';
-        const isAutoManagedTerritorySpecific =
-            salesTerm.priceCategory === 'Rightsholder' &&
-            salesTerm.source !== 'ALL' &&
-            getTerritorySpecificSources(salesTerm.territory).includes(salesTerm.source);
-
-        if (!deal || (!isAutoManagedGlobalRightsholder && !isAutoManagedTerritorySpecific)) {
-            return salesTerm;
-        }
-
-        return {
-            ...salesTerm,
-            rate: toCurveRate(getEffectiveDealRate(deal, client.details.accountBalance))
-        };
-    });
-
-const getSalesTermComparisonKey = (salesTerm: CurveSalesTermConfig): string =>
-    [salesTerm.priceCategory, salesTerm.source, salesTerm.territory]
-        .map((value) => value.toLowerCase().trim())
-        .join('|');
-
-const getSalesTermComparableValues = (salesTerm: CurveSalesTermConfig): string[] => [
-    salesTerm.catType,
-    salesTerm.catalogueGroup,
-    salesTerm.territory,
-    salesTerm.channel,
-    salesTerm.configuration,
-    salesTerm.priceCategory,
-    salesTerm.source,
-    salesTerm.type,
-    salesTerm.rate,
-    salesTerm.multiplier,
-    salesTerm.reductionRate,
-    salesTerm.reserve
-];
-
-const getMatchingCurveSalesTerm = (salesTerm: CurveSalesTermConfig): CurveSalesTermConfig | undefined =>
-    currentCurveSalesTerms.find((item) => getSalesTermComparisonKey(item) === getSalesTermComparisonKey(salesTerm));
-
-const getSalesTermStatus = (salesTerm: CurveSalesTermConfig): SalesTermStatus => {
-    const curveSalesTerm = getMatchingCurveSalesTerm(salesTerm);
-
-    if (!curveSalesTerm) {
-        return 'created';
-    }
-
-    return getSalesTermComparableValues(curveSalesTerm).every(
-        (value, index) => value === getSalesTermComparableValues(salesTerm)[index]
-    )
-        ? 'unchanged'
-        : 'updated';
-};
-
-const getSalesTermFieldValue = (salesTerm: CurveSalesTermConfig, field: EditableSalesTermField): string =>
-    salesTerm[field];
-
-const isSalesTermFieldChanged = (salesTerm: CurveSalesTermConfig, field: EditableSalesTermField): boolean => {
-    const curveSalesTerm = getMatchingCurveSalesTerm(salesTerm);
-    const sentValue = getSalesTermFieldValue(salesTerm, field) || emptyValue;
-    const curveValue = curveSalesTerm ? getSalesTermFieldValue(curveSalesTerm, field) || emptyValue : 'Not set';
-
-    return shouldHighlightPayloadChange(curveValue, sentValue);
-};
-
 const buildContractPayload = (client: RightsHolderClient): CurvePayloadField[] => {
     const contractName = `${client.clientName} Neighbouring Rights`;
 
@@ -1668,169 +1315,69 @@ const buildContractPayload = (client: RightsHolderClient): CurvePayloadField[] =
     ];
 };
 
-function TransposedPayloadTable({ rows }: { rows: CurvePayloadField[] }): React.ReactElement {
-    return (
-        <div className="reference-payee-table-scroll">
-            <table className="reference-payee-table">
-                <thead>
-                    <tr>
-                        <th aria-label="Source" />
-                        {rows.map((row) => (
-                            <th key={row.id} scope="col">
-                                {row.field}
-                            </th>
-                        ))}
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <th scope="row">NR</th>
-                        {rows.map((row) => (
-                            <td key={row.id}>{row.nrValue}</td>
-                        ))}
-                    </tr>
-                    <tr className="reference-payee-curve-row">
-                        <th scope="row">Curve</th>
-                        {rows.map((row) => {
-                            const isChanged =
-                                !row.immutable && shouldHighlightPayloadChange(row.curveValue, row.nrValue);
+const clientDataFieldLabels: Record<string, string> = {
+    foreignId: 'Foreign ID',
+    name: 'Name',
+    alternateName: 'Alternate name',
+    country: 'Country',
+    address: 'Address',
+    contactEmail: 'Contact email',
+    payeeCategories: 'Categories',
+    currency: 'Currency'
+};
 
-                            return (
-                                <td key={row.id} className={isChanged ? 'reference-after-value' : undefined}>
-                                    {row.curveValue}
-                                </td>
-                            );
-                        })}
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    );
-}
+const clientDataFieldCaptions: Record<string, string> = {
+    name: 'Payee & Contract',
+    currency: 'Contract'
+};
 
-function SalesTermsEditor({
-    salesTerms,
-    onAddSalesTerm,
-    onDeleteSalesTerm,
-    onUpdateSalesTerm,
-    title
+function ClientDataComparisonTable({
+    payee,
+    contract
 }: {
-    salesTerms: CurveSalesTermConfig[];
-    onAddSalesTerm: () => void;
-    onDeleteSalesTerm: (_salesTermId: string) => void;
-    onUpdateSalesTerm: (_salesTermId: string, _field: EditableSalesTermField, _value: string) => void;
-    title?: string;
+    payee: CurvePayloadField[];
+    contract: CurvePayloadField[];
 }): React.ReactElement {
-    const renderInput = (
-        salesTerm: CurveSalesTermConfig,
-        field: EditableSalesTermField,
-        label: string
-    ): React.ReactElement => (
-        <input
-            aria-label={`${label} ${salesTerm.id}`}
-            className={`reference-sales-term-input${isSalesTermFieldChanged(salesTerm, field) ? ' changed' : ''}`}
-            value={salesTerm[field]}
-            onChange={(event) => onUpdateSalesTerm(salesTerm.id, field, event.target.value)}
-        />
-    );
+    const currencyRow = contract.find((row) => row.field === 'currency');
+    const rows = [...payee, ...(currencyRow ? [currencyRow] : [])];
 
     return (
-        <>
-            <div className="reference-sales-terms-toolbar">
-                {title && <h5 className="reference-sales-terms-title">{title}</h5>}
-                <Button
-                    variant="text"
-                    color="inherit"
-                    startIcon={<AddIcon />}
-                    onClick={onAddSalesTerm}
-                    sx={{
-                        fontSize: 12,
-                        fontWeight: 800,
-                        letterSpacing: 0,
-                        minHeight: 32,
-                        color: 'var(--nr-text-primary)',
-                        '& .MuiSvgIcon-root': { color: 'var(--nr-text-primary)' }
-                    }}
-                >
-                    Add sales term
-                </Button>
+        <div className="reference-curve-table" role="table" aria-label="Client and contract data">
+            <div className="reference-curve-row reference-curve-head" role="row">
+                <div role="columnheader">Field</div>
+                <div role="columnheader">NR source value</div>
+                <div role="columnheader">Curve current value</div>
+                <div role="columnheader">Status</div>
             </div>
-            <div className="reference-sales-terms-table" role="table" aria-label="Sales terms payload">
-                <div className="reference-sales-terms-row header" role="row">
-                    <div role="columnheader">State</div>
-                    <div role="columnheader">Price cat</div>
-                    <div role="columnheader">Source</div>
-                    <div role="columnheader">Rate %</div>
-                    <div role="columnheader" aria-label="Sales term actions" />
-                </div>
-                {salesTerms.map((salesTerm) => {
-                    const status = getSalesTermStatus(salesTerm);
+            {rows.map((row) => {
+                const changed = !row.immutable && shouldHighlightPayloadChange(row.curveValue, row.nrValue);
+                const caption = clientDataFieldCaptions[row.field];
+                const nrMeaningful = !isEmptyPayloadValue(row.nrValue);
 
-                    return (
-                        <div
-                            key={salesTerm.id}
-                            className={`reference-sales-terms-row editable ${status}`}
-                            role="row"
-                        >
-                            <div role="cell">
-                                <span className={`reference-sales-term-status ${status}`}>
-                                    {status.replace('-', ' ')}
-                                </span>
-                            </div>
-                            <div role="cell">
-                                <select
-                                    aria-label={`Price category ${salesTerm.id}`}
-                                    className={`reference-sales-term-select${
-                                        isSalesTermFieldChanged(salesTerm, 'priceCategory') ? ' changed' : ''
-                                    }`}
-                                    value={salesTerm.priceCategory}
-                                    onChange={(event) =>
-                                        onUpdateSalesTerm(
-                                            salesTerm.id,
-                                            'priceCategory',
-                                            event.target.value as CurveSalesTermPriceCategory
-                                        )
-                                    }
-                                >
-                                    {priceCategoryOptions.map((option) => (
-                                        <option key={option} value={option}>
-                                            {option}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div role="cell">
-                                <select
-                                    aria-label={`Source ${salesTerm.id}`}
-                                    className={`reference-sales-term-select${
-                                        isSalesTermFieldChanged(salesTerm, 'source') ? ' changed' : ''
-                                    }`}
-                                    value={salesTerm.source}
-                                    onChange={(event) => onUpdateSalesTerm(salesTerm.id, 'source', event.target.value)}
-                                >
-                                    {sourceOptions.map((option) => (
-                                        <option key={option} value={option}>
-                                            {option}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div role="cell">{renderInput(salesTerm, 'rate', 'Rate')}</div>
-                            <div role="cell">
-                                <button
-                                    aria-label={`Delete sales term ${salesTerm.id}`}
-                                    className="reference-icon-button reference-sales-term-delete"
-                                    type="button"
-                                    onClick={() => onDeleteSalesTerm(salesTerm.id)}
-                                >
-                                    <DeleteOutlineIcon sx={{ fontSize: 18 }} />
-                                </button>
-                            </div>
+                return (
+                    <div className="reference-curve-row" role="row" key={row.id}>
+                        <div role="cell" className={`reference-curve-field${changed || caption ? '' : ' muted'}`}>
+                            <span>{clientDataFieldLabels[row.field] ?? row.field}</span>
+                            {caption && <span className="reference-curve-caption">{caption}</span>}
                         </div>
-                    );
-                })}
-            </div>
-        </>
+                        <div
+                            role="cell"
+                            className={changed && nrMeaningful ? 'reference-curve-nr-override' : 'reference-curve-muted'}
+                        >
+                            {row.nrValue}
+                        </div>
+                        <div role="cell" className={changed ? 'reference-curve-strike' : 'reference-curve-muted'}>
+                            {row.curveValue}
+                        </div>
+                        <div role="cell">
+                            <span className={`reference-curve-status ${changed ? 'override' : 'in-sync'}`}>
+                                {changed ? 'Override' : 'In sync'}
+                            </span>
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
     );
 }
 
@@ -2056,41 +1603,194 @@ function TerritoryDealDialog({
     );
 }
 
+interface CmoRateOverride {
+    cmo: string;
+    rate: string;
+}
+
+interface CmoOverrideSection {
+    territory: string;
+    baseCmos: string;
+    baseRate: string;
+    baseCaption: string;
+    overrides: CmoRateOverride[];
+}
+
+const cmoRateOverrideSections: CmoOverrideSection[] = [
+    {
+        territory: 'World excluding US',
+        baseCmos:
+            'ABRAMUS BR, ACTRA RACS CA, ADAMI FR, AGATA LT, AGEDI ES, AIE ES, ALL, APOLLON GR, AUDIOGEST PT, CONNECT CA, CPRA JP, CREDIDAM RO, EFU EE, EJI HU, ERATO GR, GDA PT, GRAMEX DK, GRAMEX FI, GRAMMO GR, GRAMO NO, GVL DE, HUZIP HR, IE Sources, IFPI SE, IMAGIA BE, INTERGRAM CZ, IPF ZAVOD SI, ITSRIGHT IT, KNR, KOBALT, LAIPA LV, LSG AT, MAHASZ HU, MROC CA, NORMA NL, NUOVO IMAIE IT, PI RS, PIRS, PLAYRIGHT BE, PPCA AU, PPI IE, PPL UK, PPNZ AU, PPNZ NZ, PROPHON BG, RAAP IE, RIAJ JP, RMNZ NZ, SAMI SE, SAMPRA ZA, SCF IT, SCPP FR, SENA, SENA NL, SIMIM BE, SLOVGRAM SK, SPEDIDAM FR, SPPF FR, STOART PL, SWISSPERFORM CH, UK Sources, UMA UA, VPL UK, ZAPRAF HR, ZPAV PL',
+        baseRate: '4%',
+        baseCaption: '',
+        overrides: [{ cmo: 'AGEDI ES', rate: '8%' }]
+    },
+    {
+        territory: 'US',
+        baseCmos: 'AFTRA US, AFM-AFTRA US, SoundExchange US, SOUNDEXCHANGE US',
+        baseRate: '5%',
+        baseCaption: '< €50,000 (12.5%); > €50,000 (5%)',
+        overrides: [
+            { cmo: 'AFM-AFTRA US', rate: '3%' },
+            { cmo: 'AFM SAGAFTRA US', rate: '8%' },
+            { cmo: 'SoundExchange US', rate: '5%' }
+        ]
+    }
+];
+
+function CmoOverrideTable({ section }: { section: CmoOverrideSection }): React.ReactElement {
+    const [overrides, setOverrides] = useState<CmoRateOverride[]>(section.overrides);
+    const [isAdding, setIsAdding] = useState(false);
+    const [draftCmo, setDraftCmo] = useState('');
+    const [draftRate, setDraftRate] = useState('');
+    const cmoOptions = useMemo(
+        () => section.baseCmos.split(',').map((value) => value.trim()).filter(Boolean),
+        [section.baseCmos]
+    );
+    const canSave = draftCmo !== '' && draftRate.trim() !== '';
+
+    const startAdding = (): void => {
+        setDraftCmo('');
+        setDraftRate('');
+        setIsAdding(true);
+    };
+    const cancelAdding = (): void => {
+        setIsAdding(false);
+        setDraftCmo('');
+        setDraftRate('');
+    };
+    const saveOverride = (): void => {
+        if (!canSave) {
+            return;
+        }
+        const trimmedRate = draftRate.trim();
+        const rate = trimmedRate.endsWith('%') ? trimmedRate : `${trimmedRate}%`;
+        setOverrides((current) => [...current, { cmo: draftCmo, rate }]);
+        cancelAdding();
+    };
+
+    return (
+        <div className="reference-cmo-table" role="table" aria-label={`CMO rate overrides for ${section.territory}`}>
+            <div className="reference-cmo-row reference-cmo-head" role="row">
+                <div role="columnheader">CMO</div>
+                <div role="columnheader">Rate</div>
+                <div role="columnheader">Status</div>
+            </div>
+            <div className="reference-cmo-row reference-cmo-base" role="row">
+                <Tooltip title={section.baseCmos} placement="top-start">
+                    <div role="cell" className="reference-cmo-cmolist">
+                        {section.baseCmos}
+                    </div>
+                </Tooltip>
+                <div role="cell" className="reference-cmo-rate">
+                    <span className="reference-cmo-rate-value">{section.baseRate}</span>
+                    {section.baseCaption && <span className="reference-cmo-caption">{section.baseCaption}</span>}
+                </div>
+                <div role="cell">
+                    <span className="reference-curve-status current-curve">Current Curve</span>
+                </div>
+            </div>
+            {overrides.map((override) => (
+                <div className="reference-cmo-row" role="row" key={override.cmo}>
+                    <div role="cell">{override.cmo}</div>
+                    <div role="cell">
+                        <span className="reference-cmo-rate-override">{override.rate}</span>
+                    </div>
+                    <div role="cell">
+                        <span className="reference-curve-status override">Override</span>
+                    </div>
+                </div>
+            ))}
+            {isAdding && (
+                <div className="reference-cmo-addrow">
+                    <select
+                        className="reference-cmo-control"
+                        aria-label="Select CMO"
+                        value={draftCmo}
+                        onChange={(event) => setDraftCmo(event.target.value)}
+                    >
+                        <option value="" disabled>
+                            Select CMO
+                        </option>
+                        {cmoOptions.map((cmo) => (
+                            <option key={cmo} value={cmo}>
+                                {cmo}
+                            </option>
+                        ))}
+                    </select>
+                    <input
+                        className="reference-cmo-control reference-cmo-input"
+                        aria-label="Type rate"
+                        placeholder="Type rate"
+                        value={draftRate}
+                        onChange={(event) => setDraftRate(event.target.value)}
+                    />
+                    <div className="reference-cmo-addrow-actions">
+                        <button
+                            type="button"
+                            className="reference-icon-button"
+                            aria-label="Save override"
+                            disabled={!canSave}
+                            onClick={saveOverride}
+                        >
+                            <SaveOutlinedIcon sx={{ fontSize: 20 }} />
+                        </button>
+                        <button
+                            type="button"
+                            className="reference-icon-button"
+                            aria-label="Cancel override"
+                            onClick={cancelAdding}
+                        >
+                            <CloseIcon sx={{ fontSize: 20 }} />
+                        </button>
+                    </div>
+                </div>
+            )}
+            <div className="reference-cmo-addbtn-row">
+                <button type="button" className="reference-cmo-addbtn" disabled={isAdding} onClick={startAdding}>
+                    <AddIcon sx={{ fontSize: 18 }} />
+                    Add CMO rate override
+                </button>
+            </div>
+        </div>
+    );
+}
+
+function CmoRateOverrides(): React.ReactElement {
+    return (
+        <div className="reference-cmo-overrides">
+            <h4 className="reference-cmo-title">CMO rate overrides</h4>
+            <p className="reference-cmo-desc">
+                Because this is a Rights Holder client, by default a Performer all sources rate at 0% will be synced
+                to Curve
+            </p>
+            {cmoRateOverrideSections.map((section) => (
+                <div className="reference-cmo-territory" key={section.territory}>
+                    <h5 className="reference-cmo-subtitle">{section.territory}</h5>
+                    <CmoOverrideTable section={section} />
+                </div>
+            ))}
+        </div>
+    );
+}
+
 function CurveSyncDialog({
     client,
-    dealSyncStates,
     open,
     selectedScopes,
-    selectedDealIds,
-    salesTerms,
     onClose,
-    onAddSalesTerm,
-    onDeleteSalesTerm,
-    onToggleScope,
-    onToggleDeal,
-    onUpdateSalesTerm,
     onSync
 }: {
     client: RightsHolderClient;
-    dealSyncStates: Record<string, SyncState>;
     open: boolean;
     selectedScopes: CurveSyncScope[];
-    selectedDealIds: string[];
-    salesTerms: CurveSalesTermConfig[];
     onClose: () => void;
-    onAddSalesTerm: () => void;
-    onDeleteSalesTerm: (_salesTermId: string) => void;
-    onToggleScope: (_scope: CurveSyncScope) => void;
-    onToggleDeal: (_dealId: string) => void;
-    onUpdateSalesTerm: (_salesTermId: string, _field: EditableSalesTermField, _value: string) => void;
     onSync: () => void;
 }): React.ReactElement {
     const [activeScopeTab, setActiveScopeTab] = useState<CurveSyncScope>('client');
     const payeePayload = buildPayeePayload(client);
     const contractPayload = buildContractPayload(client);
-    const hasSelectedScope = selectedScopes.length > 0 && (!selectedScopes.includes('deals') || selectedDealIds.length > 0);
-    const isDealDisabled = (deal: TerritoryDeal): boolean =>
-        !selectedDealIds.includes(deal.id) && hasSelectedTerritoryConflict(deal, selectedDealIds, client.territoryDeals);
+    const hasSelectedScope = selectedScopes.length > 0;
 
     const renderScopeTabLabel = (label: string): React.ReactNode => (
         <span className="reference-sync-scope-tab-label">{label}</span>
@@ -2113,76 +1813,10 @@ function CurveSyncDialog({
                     </Tabs>
 
                     {activeScopeTab === 'client' && selectedScopes.includes('client') && (
-                        <div className="reference-sync-tab-stack">
-                            <div className="reference-sync-payee-section" aria-label="Payee data">
-                                <h4>Payee data</h4>
-                                <TransposedPayloadTable rows={payeePayload} />
-                            </div>
-                            <div className="reference-sync-payee-section" aria-label="Contract data">
-                                <h4>Contract data</h4>
-                                <TransposedPayloadTable rows={contractPayload} />
-                            </div>
-                        </div>
+                        <ClientDataComparisonTable payee={payeePayload} contract={contractPayload} />
                     )}
 
-                    {activeScopeTab === 'deals' && selectedScopes.includes('deals') && (
-                        <div className="reference-sync-tab-stack">
-                            {client.territoryDeals.map((deal) => {
-                                const isSelected = selectedDealIds.includes(deal.id);
-                                const disabled = isDealDisabled(deal);
-                                const dealSalesTerms = salesTerms.filter(
-                                    (term) => term.sourceDealId === deal.id
-                                );
-                                return (
-                                    <div
-                                        key={deal.id}
-                                        className={`reference-sync-deal-card${
-                                            isSelected ? ' selected' : ''
-                                        }${disabled ? ' disabled' : ''}`}
-                                    >
-                                        <label
-                                            className="reference-sync-deal-card-header"
-                                            title={
-                                                disabled
-                                                    ? 'Territory already covered by selected deal'
-                                                    : undefined
-                                            }
-                                        >
-                                            <Checkbox
-                                                checked={isSelected}
-                                                disabled={disabled}
-                                                onChange={() => onToggleDeal(deal.id)}
-                                            />
-                                            <strong>{deal.territories}</strong>
-                                        </label>
-                                        <div className="reference-sync-deal-card-meta">
-                                            <span>
-                                                <strong>Start:</strong> {deal.startDate}{' '}
-                                                <strong>End:</strong> {deal.endDate}
-                                            </span>
-                                            <span>
-                                                <strong>Rate:</strong>{' '}
-                                                {getDealRateLabel(deal, client.details.accountBalance, {
-                                                    showCurrentBadge: true
-                                                })}
-                                            </span>
-                                        </div>
-                                        {isSelected && (
-                                            <div className="reference-sync-deal-card-sales-terms">
-                                                <SalesTermsEditor
-                                                    title="Curve Sales Terms overwrites"
-                                                    salesTerms={dealSalesTerms}
-                                                    onAddSalesTerm={onAddSalesTerm}
-                                                    onDeleteSalesTerm={onDeleteSalesTerm}
-                                                    onUpdateSalesTerm={onUpdateSalesTerm}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
+                    {activeScopeTab === 'deals' && selectedScopes.includes('deals') && <CmoRateOverrides />}
                 </div>
             </DialogContent>
             <DialogActions>
@@ -2207,16 +1841,7 @@ function ReferenceClientPage(): React.ReactElement {
     const [syncStateBeforeEdit, setSyncStateBeforeEdit] = useState<SyncState>(client.syncState);
     const [isSyncDialogOpen, setIsSyncDialogOpen] = useState(false);
     const [selectedSyncScopes, setSelectedSyncScopes] = useState<CurveSyncScope[]>(['client', 'deals']);
-    const [selectedDealIds, setSelectedDealIds] = useState<string[]>(() =>
-        getDefaultSelectedDealIds(client.territoryDeals)
-    );
     const [clientSyncState, setClientSyncState] = useState<SyncState>(client.syncState);
-    const [dealSyncStates, setDealSyncStates] = useState<Record<string, SyncState>>(() =>
-        Object.fromEntries(client.territoryDeals.map((deal) => [deal.id, deal.syncState]))
-    );
-    const [salesTermConfigs, setSalesTermConfigs] = useState<CurveSalesTermConfig[]>(() =>
-        buildDefaultSalesTerms(client)
-    );
     const [editingDeal, setEditingDeal] = useState<TerritoryDeal | null>(null);
     const tabIndex = tabByIndex.indexOf(tab);
 
@@ -2227,10 +1852,7 @@ function ReferenceClientPage(): React.ReactElement {
         setIsEditingMainDetails(false);
         setClientSyncState(client.syncState);
         setSyncStateBeforeEdit(client.syncState);
-        setDealSyncStates(Object.fromEntries(client.territoryDeals.map((deal) => [deal.id, deal.syncState])));
-        setSalesTermConfigs(buildDefaultSalesTerms(client));
         setSelectedSyncScopes(['client', 'deals']);
-        setSelectedDealIds(getDefaultSelectedDealIds(client.territoryDeals));
         setIsSyncDialogOpen(false);
         setEditingDeal(null);
     }, [client]);
@@ -2279,69 +1901,9 @@ function ReferenceClientPage(): React.ReactElement {
         setIsEditingMainDetails(false);
     };
 
-    const openSyncDialog = (
-        scopes: CurveSyncScope[],
-        dealIds = getDefaultSelectedDealIds(draftClient.territoryDeals)
-    ): void => {
-        setSalesTermConfigs((salesTerms) => refreshDefaultSalesTermRates(draftClient, salesTerms));
+    const openSyncDialog = (scopes: CurveSyncScope[]): void => {
         setSelectedSyncScopes(scopes);
-        setSelectedDealIds(dealIds);
         setIsSyncDialogOpen(true);
-    };
-
-    const toggleSyncScope = (scope: CurveSyncScope): void => {
-        setSelectedSyncScopes((scopes) =>
-            scopes.includes(scope) ? scopes.filter((item) => item !== scope) : [...scopes, scope]
-        );
-    };
-
-    const toggleSelectedDeal = (dealId: string): void => {
-        setSelectedDealIds((dealIds) =>
-            dealIds.includes(dealId)
-                ? dealIds.filter((item) => item !== dealId)
-                : draftClient.territoryDeals.some(
-                      (deal) =>
-                          deal.id === dealId &&
-                          hasSelectedTerritoryConflict(deal, dealIds, draftClient.territoryDeals)
-                  )
-                  ? dealIds
-                  : [...dealIds, dealId]
-        );
-    };
-
-    const addSalesTerm = (): void => {
-        const deal = draftClient.territoryDeals.find((item) => item.id === selectedDealIds[0]);
-
-        if (!deal) {
-            return;
-        }
-
-        setSalesTermConfigs((salesTerms) => [
-            ...salesTerms,
-            createSalesTermConfig({
-                deal,
-                id: `${deal.id}-custom-${salesTerms.length + 1}-${Date.now()}`,
-                priceCategory: 'Rightsholder',
-                rate: toCurveRate(getEffectiveDealRate(deal, draftClient.details.accountBalance))
-            })
-        ]);
-    };
-
-    const deleteSalesTerm = (salesTermId: string): void => {
-        setSalesTermConfigs((salesTerms) => salesTerms.filter((salesTerm) => salesTerm.id !== salesTermId));
-    };
-
-    const updateSalesTerm = (salesTermId: string, field: EditableSalesTermField, value: string): void => {
-        setSalesTermConfigs((salesTerms) =>
-            salesTerms.map((salesTerm) =>
-                salesTerm.id === salesTermId
-                    ? {
-                          ...salesTerm,
-                          [field]: value
-                      }
-                    : salesTerm
-            )
-        );
     };
 
     const openDealEditor = (deal: TerritoryDeal): void => {
@@ -2369,13 +1931,6 @@ function ReferenceClientPage(): React.ReactElement {
 
         setDraftClient(updateClientDeal);
         setSavedClient(updateClientDeal);
-        setDealSyncStates((states) => ({
-            ...states,
-            [editingDeal.id]: 'requires-sync'
-        }));
-        setSalesTermConfigs((salesTerms) =>
-            refreshDefaultSalesTermRates(updateClientDeal(draftClient), salesTerms)
-        );
         setEditingDeal(null);
     };
 
@@ -2383,13 +1938,6 @@ function ReferenceClientPage(): React.ReactElement {
         if (selectedSyncScopes.includes('client')) {
             setClientSyncState('synced');
             setSyncStateBeforeEdit('synced');
-        }
-
-        if (selectedSyncScopes.includes('deals')) {
-            setDealSyncStates((states) => ({
-                ...states,
-                ...Object.fromEntries(selectedDealIds.map((dealId) => [dealId, 'synced' as SyncState]))
-            }));
         }
 
         setIsSyncDialogOpen(false);
@@ -2413,7 +1961,7 @@ function ReferenceClientPage(): React.ReactElement {
                         showLabel
                         subject="Client"
                         ariaLabel={`Sync ${draftClient.clientName} client with Curve`}
-                        onClick={() => openSyncDialog(['client'], [])}
+                        onClick={() => openSyncDialog(['client'])}
                     />
                 </div>
                 {tab === 'main' && (
@@ -2548,12 +2096,10 @@ function ReferenceClientPage(): React.ReactElement {
             {tab === 'main' && (
                 <MainDetailsTab
                     client={draftClient}
-                    dealSyncStates={dealSyncStates}
                     isEditing={isEditingMainDetails}
                     onClientFieldChange={updateDraftClientField}
                     onDetailFieldChange={updateDraftDetailField}
                     onEditDeal={openDealEditor}
-                    onOpenDealSync={() => openSyncDialog(['deals'])}
                 />
             )}
             {tab === 'repertoire' && <RepertoireTab assets={client.repertoireAssets} />}
@@ -2561,17 +2107,9 @@ function ReferenceClientPage(): React.ReactElement {
             {tab === 'cmos' && <CmosTab registrations={client.cmoRegistrations} />}
             <CurveSyncDialog
                 client={draftClient}
-                dealSyncStates={dealSyncStates}
                 open={isSyncDialogOpen}
                 selectedScopes={selectedSyncScopes}
-                selectedDealIds={selectedDealIds}
-                salesTerms={salesTermConfigs}
                 onClose={() => setIsSyncDialogOpen(false)}
-                onAddSalesTerm={addSalesTerm}
-                onDeleteSalesTerm={deleteSalesTerm}
-                onToggleScope={toggleSyncScope}
-                onToggleDeal={toggleSelectedDeal}
-                onUpdateSalesTerm={updateSalesTerm}
                 onSync={syncSelectedItems}
             />
             <TerritoryDealDialog
