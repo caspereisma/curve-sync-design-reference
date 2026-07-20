@@ -15,6 +15,8 @@ const VIEWPORTS = {
 };
 
 const ROUTES: Array<{ name: string; path: string }> = [
+  // `/` and `/clients` redirect to `/rights-holders`, so those three baselines
+  // are expected to match — they guard the redirects, not distinct pages.
   { name: 'home',           path: '/' },
   { name: 'clients',        path: '/clients' },
   { name: 'rights-holders', path: '/rights-holders' },
@@ -22,7 +24,9 @@ const ROUTES: Array<{ name: string; path: string }> = [
 ];
 
 async function gotoReady(page: Page, path: string) {
-  await page.goto(path);
+  // The app uses HashRouter, so routes live behind the # fragment. A plain
+  // page.goto('/clients') would render the default route instead.
+  await page.goto(`/#${path}`);
   // App root mounts inside #root — wait until it has children before capturing.
   await page.waitForFunction(() => {
     const root = document.getElementById('root');
