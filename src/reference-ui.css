@@ -2308,7 +2308,7 @@ body {
 
 .reference-sync-table-row {
     display: grid;
-    grid-template-columns: minmax(150px, 1.3fr) minmax(84px, 1fr) minmax(84px, 1fr) minmax(84px, 1fr) 150px 172px;
+    grid-template-columns: minmax(150px, 1.3fr) minmax(84px, 1fr) minmax(84px, 1fr) minmax(84px, 1fr) 164px 172px;
     align-items: center;
     min-height: 52px;
     border-bottom: 1px solid var(--nr-divider);
@@ -2321,6 +2321,10 @@ body {
 .reference-sync-table-head {
     color: var(--nr-text-primary);
     font-weight: 600;
+}
+
+.reference-sync-table-head .cell {
+    white-space: nowrap;
 }
 
 .reference-sync-table .cell {

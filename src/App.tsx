@@ -492,6 +492,7 @@ function EventDetailsDialog({
                             ariaLabel={`${totalAssets.toLocaleString()} total assets: ${totals.createdAssetsCount.toLocaleString()} created, ${totals.updatedAssetsCount.toLocaleString()} updated, ${totals.failedAssetsCount.toLocaleString()} existing skipped`}
                         />
 
+                        {!isSingleClient && (
                         <div className="reference-sync-legend">
                             {legendRows.map((row) => (
                                 <div key={row.key} className="reference-sync-legend-row">
@@ -508,6 +509,7 @@ function EventDetailsDialog({
                                 </div>
                             ))}
                         </div>
+                        )}
 
                         <div className="reference-sync-table" role="table" aria-label="Per-client sync summary">
                             <div className="reference-sync-table-row reference-sync-table-head" role="row">
@@ -552,7 +554,10 @@ function EventDetailsDialog({
                                         <div className="cell num" role="cell">
                                             {clientSummary.updatedAssetsCount.toLocaleString()}
                                         </div>
-                                        <div className="cell num skipped" role="cell">
+                                        <div
+                                            className={`cell num${clientSummary.failedAssetsCount > 0 ? ' skipped' : ''}`}
+                                            role="cell"
+                                        >
                                             {clientSummary.failedAssetsCount.toLocaleString()}
                                         </div>
                                         <div className="cell status" role="cell">
