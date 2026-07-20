@@ -10,11 +10,17 @@ const syncStateLabels: Record<SyncState, string> = {
     'requires-sync': 'Requires sync'
 };
 
+// Label text used when a `subject` prefix is shown, e.g. "Curve: requires sync".
+const subjectStateLabels: Record<SyncState, string> = {
+    'not-synced': 'Not synced',
+    synced: 'synced',
+    'requires-sync': 'requires sync'
+};
+
 interface SyncStateIndicatorProps {
     state: SyncState;
     showLabel?: boolean;
     subject?: string;
-    plural?: boolean;
     onClick?: () => void;
     ariaLabel?: string;
 }
@@ -23,20 +29,11 @@ function SyncStateIndicator({
     state,
     showLabel = false,
     subject,
-    plural = false,
     onClick,
     ariaLabel
 }: SyncStateIndicatorProps): React.ReactElement {
     const className = `reference-sync-state ${state}${onClick ? ' clickable' : ''}`;
-    const stateLabel = syncStateLabels[state];
-    let label: string;
-    if (subject) {
-        const lowercased = stateLabel.charAt(0).toLowerCase() + stateLabel.slice(1);
-        const adjusted = plural ? lowercased.replace(/^requires\b/, 'require') : lowercased;
-        label = `${subject} ${adjusted}`;
-    } else {
-        label = stateLabel;
-    }
+    const label = subject ? `${subject}: ${subjectStateLabels[state]}` : syncStateLabels[state];
     const content = (
         <>
             <SyncIcon sx={{ fontSize: 18 }} />

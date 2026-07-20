@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import CloseIcon from '@mui/icons-material/Close';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -85,7 +86,7 @@ interface ReferenceEventsPageProps {
 const referenceEvents: AssetSyncEvent[] = [
     {
         id: 'event-reference-1',
-        description: 'Curve sync 1040 tracks for Hexagon Label B.V.',
+        description: 'Curve sync 12,040 tracks for 5 clients',
         mode: 'all-assets',
         excludedClientIds: [],
         summary: [
@@ -93,7 +94,7 @@ const referenceEvents: AssetSyncEvent[] = [
                 clientId: 'hexagon-label',
                 clientName: 'Hexagon Label B.V.',
                 status: 'Partially synced',
-                processedAssetsCount: 1040,
+                processedAssetsCount: 1166,
                 createdAssetsCount: 0,
                 updatedAssetsCount: 1040,
                 failedAssetsCount: 126,
@@ -123,6 +124,36 @@ const referenceEvents: AssetSyncEvent[] = [
                 createdAssetsCount: 12,
                 updatedAssetsCount: 74,
                 failedAssetsCount: 0,
+                failedAssets: []
+            },
+            {
+                clientId: 'concord-bicycle',
+                clientName: 'Concord Bicycle Assets, LLC',
+                status: 'Partially synced',
+                processedAssetsCount: 2747,
+                createdAssetsCount: 1099,
+                updatedAssetsCount: 440,
+                failedAssetsCount: 1208,
+                failedAssets: []
+            },
+            {
+                clientId: 'firebird-music',
+                clientName: 'Firebird Music Holdings, LLC',
+                status: 'Sync completed',
+                processedAssetsCount: 3177,
+                createdAssetsCount: 2496,
+                updatedAssetsCount: 681,
+                failedAssetsCount: 0,
+                failedAssets: []
+            },
+            {
+                clientId: 'friendly-fire',
+                clientName: 'Friendly Fire B.V.',
+                status: 'Partially synced',
+                processedAssetsCount: 4864,
+                createdAssetsCount: 2451,
+                updatedAssetsCount: 1553,
+                failedAssetsCount: 860,
                 failedAssets: []
             }
         ],
@@ -383,6 +414,33 @@ function getSummaryTotals(summary: ClientAssetSyncSummary[]): Omit<ClientAssetSy
     );
 }
 
+const getStatusClassName = (status: AssetSyncStatus): string => status.toLowerCase().replace(/\s+/g, '-');
+
+function SyncDistributionBar({
+    created,
+    updated,
+    skipped,
+    small = false,
+    ariaLabel
+}: {
+    created: number;
+    updated: number;
+    skipped: number;
+    small?: boolean;
+    ariaLabel: string;
+}): React.ReactElement {
+    return (
+        <div className={`reference-sync-bar${small ? ' small' : ''}`} role="img" aria-label={ariaLabel}>
+            {created > 0 && <span className="reference-sync-bar-segment created" style={{ flexGrow: created }} />}
+            {updated > 0 && <span className="reference-sync-bar-segment updated" style={{ flexGrow: updated }} />}
+            {skipped > 0 && <span className="reference-sync-bar-segment skipped" style={{ flexGrow: skipped }} />}
+        </div>
+    );
+}
+
+const statusChipLabel = (status: AssetSyncStatus): string =>
+    status === 'Sync completed' ? 'Sync complete' : status;
+
 function EventDetailsDialog({
     event,
     onClose
@@ -390,10 +448,19 @@ function EventDetailsDialog({
     event: AssetSyncEvent | null;
     onClose: () => void;
 }): React.ReactElement {
-    const totals = getSummaryTotals(event?.summary ?? []);
-    const isSingleClient = (event?.summary.length ?? 0) === 1;
-    const subjectName = isSingleClient ? event?.summary[0]?.clientName : 'all clients';
+    const summary = event?.summary ?? [];
+    const totals = getSummaryTotals(summary);
+    const totalAssets = totals.createdAssetsCount + totals.updatedAssetsCount + totals.failedAssetsCount;
+    const isSingleClient = summary.length === 1;
+    const subjectName = isSingleClient ? summary[0]?.clientName : 'all clients';
     const titleText = subjectName ? `Curve sync details — ${subjectName}` : 'Curve sync details';
+    const getShare = (count: number): number => (totalAssets > 0 ? Math.round((count / totalAssets) * 100) : 0);
+
+    const legendRows = [
+        { key: 'created', label: 'Created', count: totals.createdAssetsCount },
+        { key: 'updated', label: 'Updated', count: totals.updatedAssetsCount },
+        { key: 'skipped', label: 'Existing skipped', count: totals.failedAssetsCount }
+    ];
 
     return (
         <Dialog
@@ -404,67 +471,101 @@ function EventDetailsDialog({
             aria-labelledby="event-details-dialog-title"
             PaperProps={{ className: 'reference-event-details-dialog-paper' }}
         >
-            <DialogTitle id="event-details-dialog-title">{titleText}</DialogTitle>
-            <DialogContent dividers>
+            <DialogTitle id="event-details-dialog-title" className="reference-sync-details-title">
+                {titleText}
+                <IconButton size="small" aria-label="Close" onClick={onClose}>
+                    <CloseIcon />
+                </IconButton>
+            </DialogTitle>
+            <DialogContent>
                 {event && (
                     <div className="reference-event-details-modal">
-                        <div className="reference-event-summary-cards">
-                            <div>
-                                <span>Processed</span>
-                                <strong>{totals.processedAssetsCount.toLocaleString()}</strong>
-                            </div>
-                            <div>
-                                <span>Created</span>
-                                <strong>{totals.createdAssetsCount.toLocaleString()}</strong>
-                            </div>
-                            <div>
-                                <span>Updated</span>
-                                <strong>{totals.updatedAssetsCount.toLocaleString()}</strong>
-                            </div>
-                            <div className={totals.failedAssetsCount > 0 ? 'attention' : ''}>
-                                <span>Existing skipped</span>
-                                <strong>{totals.failedAssetsCount.toLocaleString()}</strong>
-                            </div>
+                        <p className="reference-sync-details-subtitle">
+                            <strong>{totalAssets.toLocaleString()}</strong> total assets · {summary.length}{' '}
+                            {isSingleClient ? 'client' : 'clients'} · {event.status.toLowerCase()}
+                        </p>
+
+                        <SyncDistributionBar
+                            created={totals.createdAssetsCount}
+                            updated={totals.updatedAssetsCount}
+                            skipped={totals.failedAssetsCount}
+                            ariaLabel={`${totalAssets.toLocaleString()} total assets: ${totals.createdAssetsCount.toLocaleString()} created, ${totals.updatedAssetsCount.toLocaleString()} updated, ${totals.failedAssetsCount.toLocaleString()} existing skipped`}
+                        />
+
+                        <div className="reference-sync-legend">
+                            {legendRows.map((row) => (
+                                <div key={row.key} className="reference-sync-legend-row">
+                                    <span className={`reference-sync-dot ${row.key}`} aria-hidden="true" />
+                                    <span className="reference-sync-legend-label">{row.label} -</span>
+                                    <span
+                                        className={`reference-sync-legend-count${
+                                            row.key === 'skipped' ? ' attention' : ''
+                                        }`}
+                                    >
+                                        <strong>{row.count.toLocaleString()}</strong>
+                                        <span> · {getShare(row.count)}%</span>
+                                    </span>
+                                </div>
+                            ))}
                         </div>
 
-                        {!isSingleClient && (
-                            <section>
-                                <h3>Client summary</h3>
-                                <div className="reference-event-client-summary">
-                                    <div className="reference-event-summary-context">
-                                        <span>CURVE_SYNC</span>
-                                        <strong>{event.description}</strong>
-                                        <span className={`reference-event-status ${event.status.toLowerCase().replace(/\s+/g, '-')}`}>
-                                            {event.status}
-                                        </span>
-                                    </div>
-                                    <div className="reference-event-client-summary-row client-summary-header">
-                                        <div>Client</div>
-                                        <div>Processed</div>
-                                        <div>Created</div>
-                                        <div>Updated</div>
-                                        <div>Existing skipped</div>
-                                        <div>Status</div>
-                                    </div>
-                                    {event.summary.map((clientSummary) => (
-                                        <div key={clientSummary.clientId} className="reference-event-client-summary-row">
-                                            <div>{clientSummary.clientName}</div>
-                                            <div>{clientSummary.processedAssetsCount.toLocaleString()}</div>
-                                            <div>{clientSummary.createdAssetsCount.toLocaleString()}</div>
-                                            <div>{clientSummary.updatedAssetsCount.toLocaleString()}</div>
-                                            <div>{clientSummary.failedAssetsCount.toLocaleString()}</div>
-                                            <div>
-                                                <span
-                                                    className={`reference-event-status ${clientSummary.status.toLowerCase().replace(/\s+/g, '-')}`}
-                                                >
-                                                    {clientSummary.status}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))}
+                        <div className="reference-sync-table" role="table" aria-label="Per-client sync summary">
+                            <div className="reference-sync-table-row reference-sync-table-head" role="row">
+                                <div className="cell client" role="columnheader">
+                                    Client
                                 </div>
-                            </section>
-                        )}
+                                <div className="cell num" role="columnheader">
+                                    Total assets
+                                </div>
+                                <div className="cell num withdot" role="columnheader">
+                                    <span className="reference-sync-dot created" aria-hidden="true" />
+                                    Created
+                                </div>
+                                <div className="cell num withdot" role="columnheader">
+                                    <span className="reference-sync-dot updated" aria-hidden="true" />
+                                    Updated
+                                </div>
+                                <div className="cell num withdot" role="columnheader">
+                                    <span className="reference-sync-dot skipped" aria-hidden="true" />
+                                    Existing skipped
+                                </div>
+                                <div className="cell status" role="columnheader">
+                                    Status
+                                </div>
+                            </div>
+                            {summary.map((clientSummary) => {
+                                const clientTotal =
+                                    clientSummary.createdAssetsCount +
+                                    clientSummary.updatedAssetsCount +
+                                    clientSummary.failedAssetsCount;
+                                return (
+                                    <div className="reference-sync-table-row" role="row" key={clientSummary.clientId}>
+                                        <div className="cell client" role="cell">
+                                            {clientSummary.clientName}
+                                        </div>
+                                        <div className="cell num" role="cell">
+                                            {clientTotal.toLocaleString()}
+                                        </div>
+                                        <div className="cell num" role="cell">
+                                            {clientSummary.createdAssetsCount.toLocaleString()}
+                                        </div>
+                                        <div className="cell num" role="cell">
+                                            {clientSummary.updatedAssetsCount.toLocaleString()}
+                                        </div>
+                                        <div className="cell num skipped" role="cell">
+                                            {clientSummary.failedAssetsCount.toLocaleString()}
+                                        </div>
+                                        <div className="cell status" role="cell">
+                                            <span
+                                                className={`reference-event-status ${getStatusClassName(clientSummary.status)}`}
+                                            >
+                                                {statusChipLabel(clientSummary.status)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
                 )}
             </DialogContent>

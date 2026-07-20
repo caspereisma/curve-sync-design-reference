@@ -15,7 +15,6 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import RestoreIcon from '@mui/icons-material/Restore';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import CloseIcon from '@mui/icons-material/Close';
-import Tooltip from '@mui/material/Tooltip';
 import SyncIcon from '@mui/icons-material/Sync';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
@@ -23,6 +22,7 @@ import Dialog from '@mui/material/Dialog';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Popover from '@mui/material/Popover';
+import Select from '@mui/material/Select';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -126,8 +126,7 @@ function DetailField({
             </div>
             {outOfSync && (
                 <span className="reference-field-helper" role="status">
-                    <SyncIcon sx={{ fontSize: 14 }} />
-                    Updated, out of sync with Curve
+                    Sync with Curve
                 </span>
             )}
         </div>
@@ -155,48 +154,76 @@ function SelectLikeField({
     );
 }
 
-function InlineCheckboxField({
-    label,
-    checked,
-    muted = false
-}: {
-    label: string;
-    checked?: boolean;
-    muted?: boolean;
-}): React.ReactElement {
-    return (
-        <label className={`reference-inline-control${muted ? ' muted' : ''}`}>
-            <Checkbox size="small" checked={checked} disabled />
-            <span>{label}</span>
-        </label>
-    );
-}
-
 function AutoExtendField(): React.ReactElement {
+    const [frequency, setFrequency] = useState('none');
+    const [period, setPeriod] = useState('');
+    const hasFrequency = frequency !== 'none';
+
     return (
-        <div className="reference-composite-field">
-            <InlineCheckboxField label="Auto extend" muted />
-            <span className="reference-composite-label">Every</span>
-            <span className="reference-small-select disabled" aria-label="Auto extend count">
-                <KeyboardArrowDownIcon sx={{ fontSize: 18, color: '#777' }} />
-            </span>
-            <span className="reference-small-select disabled" aria-label="Auto extend unit">
-                <KeyboardArrowDownIcon sx={{ fontSize: 18, color: '#777' }} />
-            </span>
+        <div className="reference-autoextend-field">
+            <span className="reference-autoextend-label">Autoextend every</span>
+            <Select
+                variant="standard"
+                className={`reference-autoextend-select${hasFrequency ? '' : ' placeholder'}`}
+                value={frequency}
+                onChange={(event) => {
+                    const value = event.target.value;
+                    setFrequency(value);
+                    if (value === 'none') {
+                        setPeriod('');
+                    }
+                }}
+                inputProps={{ 'aria-label': 'Autoextend frequency' }}
+                sx={{ width: hasFrequency ? 72 : 140 }}
+            >
+                <MenuItem value="none">No autoextend</MenuItem>
+                {[1, 2, 3, 4, 5, 6].map((count) => (
+                    <MenuItem key={count} value={String(count)}>
+                        {count}
+                    </MenuItem>
+                ))}
+            </Select>
+            {hasFrequency && (
+                <Select
+                    variant="standard"
+                    className={`reference-autoextend-select${period === '' ? ' placeholder' : ''}`}
+                    value={period}
+                    displayEmpty
+                    onChange={(event) => setPeriod(event.target.value)}
+                    inputProps={{ 'aria-label': 'Autoextend period' }}
+                    sx={{ width: 118 }}
+                >
+                    <MenuItem value="">&nbsp;</MenuItem>
+                    <MenuItem value="Month(s)">Month(s)</MenuItem>
+                    <MenuItem value="Year(s)">Year(s)</MenuItem>
+                </Select>
+            )}
         </div>
     );
 }
 
-function AdvanceField(): React.ReactElement {
+function AdvanceField({ amount, recoupment }: { amount: string; recoupment: string }): React.ReactElement {
+    const hasAdvance = recoupment === 'in-recoupment' || recoupment === 'recouped';
+
     return (
-        <div className="reference-composite-field">
-            <InlineCheckboxField label="Advance" checked />
-            <div className="reference-amount-field">
-                <span className="reference-field-label">Amount</span>
-                <div className="reference-field-value">
-                    <span>€50,000</span>
-                </div>
+        <div className="reference-field">
+            <span className="reference-field-label">Advance</span>
+            <div className="reference-field-value">
+                <span className="reference-advance-currency">€</span>
+                {hasAdvance && <span>{amount}</span>}
             </div>
+            {recoupment === 'recouped' && (
+                <span className="reference-advance-status recouped" role="status">
+                    <span className="reference-status-dot" aria-hidden="true" />
+                    Recouped
+                </span>
+            )}
+            {recoupment === 'in-recoupment' && (
+                <span className="reference-advance-status in-recoupment" role="status">
+                    <span className="reference-status-dot" aria-hidden="true" />
+                    In recoupment
+                </span>
+            )}
         </div>
     );
 }
@@ -204,10 +231,12 @@ function AdvanceField(): React.ReactElement {
 function TerritoryDealsTable({
     deals,
     accountBalance,
+    isEditing,
     onEditDeal
 }: {
     deals: TerritoryDeal[];
     accountBalance: string;
+    isEditing: boolean;
     onEditDeal: (_deal: TerritoryDeal) => void;
 }): React.ReactElement {
     return (
@@ -232,27 +261,14 @@ function TerritoryDealsTable({
                     {' '}
                 </div>
             </div>
-            {deals.map((deal) => {
-                const requiresSync = deal.syncState === 'requires-sync';
-                return (
-                <div
-                    key={deal.id}
-                    className={`reference-table-row territory-deal-grid${
-                        requiresSync ? ' requires-sync' : ''
-                    }`}
-                    role="row"
-                >
-                    <div className="reference-table-cell" role="cell">
-                        {deal.territories}
+            {deals.map((deal) => (
+                <div key={deal.id} className="reference-table-row territory-deal-grid" role="row">
+                    <div className="reference-table-cell reference-territory-name-cell" role="cell">
+                        <SyncStateIndicator state={deal.syncState} />
+                        <span>{deal.territories}</span>
                     </div>
                     <div className="reference-table-cell" role="cell">
-                        <span>{getDealRateLabel(deal, accountBalance)}</span>
-                        {requiresSync && (
-                            <SyncIcon
-                                sx={{ fontSize: 14, color: 'var(--nr-warning)', marginLeft: 0.5 }}
-                                aria-label="Requires sync"
-                            />
-                        )}
+                        {getDealRateLabel(deal, accountBalance)}
                     </div>
                     <div className="reference-table-cell" role="cell">
                         {deal.startDate}
@@ -260,7 +276,7 @@ function TerritoryDealsTable({
                     <div className="reference-table-cell" role="cell">
                         {deal.endDate}
                     </div>
-                    <div className="reference-table-cell" role="cell">
+                    <div className="reference-table-cell reference-status-cell" role="cell">
                         <span className={`reference-status ${deal.status.toLowerCase()}`}>{deal.status}</span>
                     </div>
                     <div className="reference-table-cell reference-table-icons" role="cell" aria-label="Deal actions">
@@ -268,15 +284,22 @@ function TerritoryDealsTable({
                             className="reference-icon-button"
                             type="button"
                             aria-label={`Edit ${deal.territories} ${deal.startDate} deal`}
+                            disabled={!isEditing}
                             onClick={() => onEditDeal(deal)}
                         >
                             <EditOutlinedIcon />
                         </button>
-                        <DeleteOutlineIcon aria-label="Delete deal" />
+                        <button
+                            className="reference-icon-button"
+                            type="button"
+                            aria-label={`Delete ${deal.territories} ${deal.startDate} deal`}
+                            disabled={!isEditing}
+                        >
+                            <DeleteOutlineIcon />
+                        </button>
                     </div>
                 </div>
-                );
-            })}
+            ))}
         </div>
     );
 }
@@ -296,6 +319,7 @@ function MainDetailsTab({
 }): React.ReactElement {
     const [activeSection, setActiveSection] = useState(mainDetailSections[0].id);
     const { details } = client;
+    const showOutOfSync = client.syncState === 'requires-sync';
     const updateDetail = (field: keyof RightsHolderClientDetails) => (value: string): void =>
         onDetailFieldChange(field, value);
     const updateClient = (field: 'clientName' | 'dealStartDate' | 'tier') => (value: string): void =>
@@ -330,7 +354,7 @@ function MainDetailsTab({
                             label="Client Name/Legal Company *"
                             value={client.clientName}
                             editable={isEditing}
-                            outOfSync
+                            outOfSync={showOutOfSync}
                             onChange={updateClient('clientName')}
                         />
                         <DetailPlaceholder />
@@ -393,7 +417,7 @@ function MainDetailsTab({
                         />
                         <DetailPlaceholder />
                         <DetailField
-                            outOfSync
+                            outOfSync={showOutOfSync}
                             label="Royalties Client Name"
                             value={details.royaltiesClientName}
                             editable={isEditing}
@@ -462,7 +486,7 @@ function MainDetailsTab({
                             editable={isEditing}
                             onChange={updateDetail('noticePeriod')}
                         />
-                        <AdvanceField />
+                        <AdvanceField amount={details.advanceAmount} recoupment={details.advanceRecoupment} />
                         <DetailPlaceholder />
                     </div>
                     <div className="reference-subsection-header">
@@ -487,6 +511,7 @@ function MainDetailsTab({
                     <TerritoryDealsTable
                         deals={client.territoryDeals}
                         accountBalance={details.accountBalance}
+                        isEditing={isEditing}
                         onEditDeal={onEditDeal}
                     />
                 </section>
@@ -514,7 +539,7 @@ function MainDetailsTab({
                         />
                         <DetailField
                             label="Bank country"
-                            outOfSync
+                            outOfSync={showOutOfSync}
                             value={details.bankCountry}
                             editable={isEditing}
                             onChange={updateDetail('bankCountry')}
@@ -1342,13 +1367,17 @@ function ClientDataComparisonTable({
     const rows = [...payee, ...(currencyRow ? [currencyRow] : [])];
 
     return (
-        <div className="reference-curve-table" role="table" aria-label="Client and contract data">
-            <div className="reference-curve-row reference-curve-head" role="row">
-                <div role="columnheader">Field</div>
-                <div role="columnheader">NR source value</div>
-                <div role="columnheader">Curve current value</div>
-                <div role="columnheader">Status</div>
-            </div>
+        <>
+            <p className="reference-curve-desc">
+                {'Fields apply to Payee’s unless otherwise indicated'}
+            </p>
+            <div className="reference-curve-table" role="table" aria-label="Client and contract data">
+                <div className="reference-curve-row reference-curve-head" role="row">
+                    <div role="columnheader">Field</div>
+                    <div role="columnheader">NR source value</div>
+                    <div role="columnheader">Curve value will be overridden</div>
+                    <div role="columnheader">Status</div>
+                </div>
             {rows.map((row) => {
                 const changed = !row.immutable && shouldHighlightPayloadChange(row.curveValue, row.nrValue);
                 const caption = clientDataFieldCaptions[row.field];
@@ -1370,14 +1399,15 @@ function ClientDataComparisonTable({
                             {row.curveValue}
                         </div>
                         <div role="cell">
-                            <span className={`reference-curve-status ${changed ? 'override' : 'in-sync'}`}>
-                                {changed ? 'Override' : 'In sync'}
+                            <span className={`reference-curve-status ${changed ? 'override' : 'current-curve'}`}>
+                                {changed ? 'Override' : 'No change'}
                             </span>
                         </div>
                     </div>
                 );
             })}
-        </div>
+            </div>
+        </>
     );
 }
 
@@ -1610,33 +1640,86 @@ interface CmoRateOverride {
 
 interface CmoOverrideSection {
     territory: string;
-    baseCmos: string;
-    baseRate: string;
-    baseCaption: string;
+    coveredCmos: string;
+    rate: string;
+    rateCaption: string;
+    expandable?: boolean;
+    overridable?: boolean;
     overrides: CmoRateOverride[];
 }
 
-const cmoRateOverrideSections: CmoOverrideSection[] = [
-    {
-        territory: 'World excluding US',
-        baseCmos:
-            'ABRAMUS BR, ACTRA RACS CA, ADAMI FR, AGATA LT, AGEDI ES, AIE ES, ALL, APOLLON GR, AUDIOGEST PT, CONNECT CA, CPRA JP, CREDIDAM RO, EFU EE, EJI HU, ERATO GR, GDA PT, GRAMEX DK, GRAMEX FI, GRAMMO GR, GRAMO NO, GVL DE, HUZIP HR, IE Sources, IFPI SE, IMAGIA BE, INTERGRAM CZ, IPF ZAVOD SI, ITSRIGHT IT, KNR, KOBALT, LAIPA LV, LSG AT, MAHASZ HU, MROC CA, NORMA NL, NUOVO IMAIE IT, PI RS, PIRS, PLAYRIGHT BE, PPCA AU, PPI IE, PPL UK, PPNZ AU, PPNZ NZ, PROPHON BG, RAAP IE, RIAJ JP, RMNZ NZ, SAMI SE, SAMPRA ZA, SCF IT, SCPP FR, SENA, SENA NL, SIMIM BE, SLOVGRAM SK, SPEDIDAM FR, SPPF FR, STOART PL, SWISSPERFORM CH, UK Sources, UMA UA, VPL UK, ZAPRAF HR, ZPAV PL',
-        baseRate: '4%',
-        baseCaption: '',
-        overrides: [{ cmo: 'AGEDI ES', rate: '8%' }]
+const worldCmoTerritories =
+    'ABRAMUS BR, ACTRA RACS CA, ADAMI FR, AGATA LT, AGEDI ES, AIE ES, ALL, APOLLON GR, AUDIOGEST PT, CONNECT CA, CPRA JP, CREDIDAM RO, EFU EE, EJI HU, ERATO GR, GDA PT, GRAMEX DK, GRAMEX FI, GRAMMO GR, GRAMO NO, GVL DE, HUZIP HR, IE Sources, IFPI SE, IMAGIA BE, INTERGRAM CZ, IPF ZAVOD SI, ITSRIGHT IT, KNR, KOBALT, LAIPA LV, LSG AT, MAHASZ HU, MROC CA, NORMA NL, NUOVO IMAIE IT, PI RS, PIRS, PLAYRIGHT BE, PPCA AU, PPI IE, PPL UK, PPNZ AU, PPNZ NZ, PROPHON BG, RAAP IE, RIAJ JP, RMNZ NZ, SAMI SE, SAMPRA ZA, SCF IT, SCPP FR, SENA, SENA NL, SIMIM BE, SLOVGRAM SK, SPEDIDAM FR, SPPF FR, STOART PL, SWISSPERFORM CH, UK Sources, UMA UA, VPL UK, ZAPRAF HR, ZPAV PL';
+
+const rightsHolderSyncNote =
+    'Because this is a Rights Holder client, by default a Performer all sources rate at 0% will be synced to Curve';
+
+const slidingScaleRateCaption = 'Sliding scale rate: < €50,000 (12.5%); > €50,000 (5%)';
+
+interface CmoRateOverridesConfig {
+    note: string;
+    sections: CmoOverrideSection[];
+}
+
+const cmoRateOverridesByClient: Record<string, CmoRateOverridesConfig> = {
+    // 1008B Records s
+    '172': {
+        note: rightsHolderSyncNote,
+        sections: [
+            {
+                territory: 'World excluding US',
+                coveredCmos: worldCmoTerritories,
+                rate: '5%',
+                rateCaption: slidingScaleRateCaption,
+                expandable: true,
+                overridable: false,
+                overrides: []
+            },
+            {
+                territory: 'US',
+                coveredCmos: 'AFTRA US, AFM-AFTRA US, SoundExchange US, SOUNDEXCHANGE US',
+                rate: '5%',
+                rateCaption: slidingScaleRateCaption,
+                overridable: true,
+                overrides: [
+                    { cmo: 'AFM SAGAFTRA US', rate: '8%' },
+                    { cmo: 'SoundExchange US', rate: '4%' }
+                ]
+            }
+        ]
     },
-    {
-        territory: 'US',
-        baseCmos: 'AFTRA US, AFM-AFTRA US, SoundExchange US, SOUNDEXCHANGE US',
-        baseRate: '5%',
-        baseCaption: '< €50,000 (12.5%); > €50,000 (5%)',
-        overrides: [
-            { cmo: 'AFM-AFTRA US', rate: '3%' },
-            { cmo: 'AFM SAGAFTRA US', rate: '8%' },
-            { cmo: 'SoundExchange US', rate: '5%' }
+    // 1008C Records
+    '173': {
+        note: 'Note: because this is a Rights Holder client, by default a Performer all sources rate at 0% will be synced to Curve',
+        sections: [
+            {
+                territory: 'World excluding ES, UK',
+                coveredCmos: worldCmoTerritories,
+                rate: '5%',
+                rateCaption: 'Flat rate',
+                expandable: true,
+                overridable: false,
+                overrides: []
+            },
+            {
+                territory: 'ES',
+                coveredCmos: 'AGEDI ES, AIE ES',
+                rate: '8%',
+                rateCaption: 'Flat rate',
+                overridable: true,
+                overrides: [{ cmo: 'AGEDI ES', rate: '5%' }]
+            },
+            {
+                territory: 'UK',
+                coveredCmos: 'VPL UK, PPL UK',
+                rate: '6%',
+                rateCaption: 'Flat rate',
+                overridable: true,
+                overrides: []
+            }
         ]
     }
-];
+};
 
 function CmoOverrideTable({ section }: { section: CmoOverrideSection }): React.ReactElement {
     const [overrides, setOverrides] = useState<CmoRateOverride[]>(section.overrides);
@@ -1644,8 +1727,8 @@ function CmoOverrideTable({ section }: { section: CmoOverrideSection }): React.R
     const [draftCmo, setDraftCmo] = useState('');
     const [draftRate, setDraftRate] = useState('');
     const cmoOptions = useMemo(
-        () => section.baseCmos.split(',').map((value) => value.trim()).filter(Boolean),
-        [section.baseCmos]
+        () => section.coveredCmos.split(',').map((value) => value.trim()).filter(Boolean),
+        [section.coveredCmos]
     );
     const canSave = draftCmo !== '' && draftRate.trim() !== '';
 
@@ -1668,27 +1751,19 @@ function CmoOverrideTable({ section }: { section: CmoOverrideSection }): React.R
         setOverrides((current) => [...current, { cmo: draftCmo, rate }]);
         cancelAdding();
     };
+    const deleteOverride = (cmo: string): void => {
+        setOverrides((current) => current.filter((override) => override.cmo !== cmo));
+    };
 
     return (
         <div className="reference-cmo-table" role="table" aria-label={`CMO rate overrides for ${section.territory}`}>
             <div className="reference-cmo-row reference-cmo-head" role="row">
                 <div role="columnheader">CMO</div>
                 <div role="columnheader">Rate</div>
-                <div role="columnheader">Status</div>
-            </div>
-            <div className="reference-cmo-row reference-cmo-base" role="row">
-                <Tooltip title={section.baseCmos} placement="top-start">
-                    <div role="cell" className="reference-cmo-cmolist">
-                        {section.baseCmos}
-                    </div>
-                </Tooltip>
-                <div role="cell" className="reference-cmo-rate">
-                    <span className="reference-cmo-rate-value">{section.baseRate}</span>
-                    {section.baseCaption && <span className="reference-cmo-caption">{section.baseCaption}</span>}
+                <div role="columnheader" className="reference-cmo-col-status">
+                    Status
                 </div>
-                <div role="cell">
-                    <span className="reference-curve-status current-curve">Current Curve</span>
-                </div>
+                <div role="columnheader" className="reference-cmo-col-actions" aria-label="Row actions" />
             </div>
             {overrides.map((override) => (
                 <div className="reference-cmo-row" role="row" key={override.cmo}>
@@ -1696,36 +1771,56 @@ function CmoOverrideTable({ section }: { section: CmoOverrideSection }): React.R
                     <div role="cell">
                         <span className="reference-cmo-rate-override">{override.rate}</span>
                     </div>
-                    <div role="cell">
+                    <div role="cell" className="reference-cmo-col-status">
                         <span className="reference-curve-status override">Override</span>
+                    </div>
+                    <div role="cell" className="reference-cmo-col-actions">
+                        <button
+                            type="button"
+                            className="reference-icon-button"
+                            aria-label={`Delete ${override.cmo} override`}
+                            onClick={() => deleteOverride(override.cmo)}
+                        >
+                            <DeleteOutlineIcon sx={{ fontSize: 20 }} />
+                        </button>
                     </div>
                 </div>
             ))}
+            {overrides.length === 0 && !isAdding && (
+                <div className="reference-cmo-row reference-cmo-empty" role="row">
+                    <div role="cell">No overrides</div>
+                </div>
+            )}
             {isAdding && (
-                <div className="reference-cmo-addrow">
-                    <select
-                        className="reference-cmo-control"
-                        aria-label="Select CMO"
-                        value={draftCmo}
-                        onChange={(event) => setDraftCmo(event.target.value)}
-                    >
-                        <option value="" disabled>
-                            Select CMO
-                        </option>
-                        {cmoOptions.map((cmo) => (
-                            <option key={cmo} value={cmo}>
-                                {cmo}
+                <div className="reference-cmo-row reference-cmo-addrow" role="row">
+                    <div role="cell">
+                        <select
+                            className="reference-cmo-field"
+                            aria-label="Select CMO"
+                            value={draftCmo}
+                            onChange={(event) => setDraftCmo(event.target.value)}
+                        >
+                            <option value="" disabled>
+                                Select CMO
                             </option>
-                        ))}
-                    </select>
-                    <input
-                        className="reference-cmo-control reference-cmo-input"
-                        aria-label="Type rate"
-                        placeholder="Type rate"
-                        value={draftRate}
-                        onChange={(event) => setDraftRate(event.target.value)}
-                    />
-                    <div className="reference-cmo-addrow-actions">
+                            {cmoOptions.map((cmo) => (
+                                <option key={cmo} value={cmo}>
+                                    {cmo}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div role="cell">
+                        <input
+                            className="reference-cmo-field"
+                            aria-label="Type rate"
+                            placeholder="Type rate"
+                            value={draftRate}
+                            onChange={(event) => setDraftRate(event.target.value)}
+                        />
+                    </div>
+                    <div role="cell" className="reference-cmo-col-status" />
+                    <div role="cell" className="reference-cmo-col-actions">
                         <button
                             type="button"
                             className="reference-icon-button"
@@ -1756,19 +1851,48 @@ function CmoOverrideTable({ section }: { section: CmoOverrideSection }): React.R
     );
 }
 
-function CmoRateOverrides(): React.ReactElement {
+function CmoTerritoryCard({ section }: { section: CmoOverrideSection }): React.ReactElement {
+    const [expanded, setExpanded] = useState(false);
+
+    return (
+        <div className="reference-cmo-card">
+            <h5 className="reference-cmo-card-title">{section.territory}</h5>
+            <div className="reference-cmo-summary-row">
+                <span className="reference-cmo-summary-label">Rate:</span>
+                <span className="reference-cmo-summary-value">{section.rate}</span>
+                {section.rateCaption && (
+                    <span className="reference-cmo-summary-caption">{section.rateCaption}</span>
+                )}
+            </div>
+            <div className="reference-cmo-summary-row">
+                <span className="reference-cmo-summary-label">CMO-territories</span>
+                <span className={`reference-cmo-summary-list${expanded ? ' expanded' : ''}`}>
+                    {section.coveredCmos}
+                </span>
+                {section.expandable && (
+                    <button
+                        type="button"
+                        className="reference-icon-button"
+                        aria-label={expanded ? 'Collapse CMO-territories' : 'Expand CMO-territories'}
+                        onClick={() => setExpanded((value) => !value)}
+                    >
+                        <KeyboardArrowDownIcon
+                            sx={{ fontSize: 20, transform: expanded ? 'rotate(180deg)' : 'none' }}
+                        />
+                    </button>
+                )}
+            </div>
+            {section.overridable && <CmoOverrideTable section={section} />}
+        </div>
+    );
+}
+
+function CmoRateOverrides({ note, sections }: CmoRateOverridesConfig): React.ReactElement {
     return (
         <div className="reference-cmo-overrides">
-            <h4 className="reference-cmo-title">CMO rate overrides</h4>
-            <p className="reference-cmo-desc">
-                Because this is a Rights Holder client, by default a Performer all sources rate at 0% will be synced
-                to Curve
-            </p>
-            {cmoRateOverrideSections.map((section) => (
-                <div className="reference-cmo-territory" key={section.territory}>
-                    <h5 className="reference-cmo-subtitle">{section.territory}</h5>
-                    <CmoOverrideTable section={section} />
-                </div>
+            <p className="reference-cmo-desc">{note}</p>
+            {sections.map((section) => (
+                <CmoTerritoryCard section={section} key={section.territory} />
             ))}
         </div>
     );
@@ -1790,6 +1914,7 @@ function CurveSyncDialog({
     const [activeScopeTab, setActiveScopeTab] = useState<CurveSyncScope>('client');
     const payeePayload = buildPayeePayload(client);
     const contractPayload = buildContractPayload(client);
+    const cmoConfig = cmoRateOverridesByClient[client.id];
     const hasSelectedScope = selectedScopes.length > 0;
 
     const renderScopeTabLabel = (label: string): React.ReactNode => (
@@ -1816,7 +1941,9 @@ function CurveSyncDialog({
                         <ClientDataComparisonTable payee={payeePayload} contract={contractPayload} />
                     )}
 
-                    {activeScopeTab === 'deals' && selectedScopes.includes('deals') && <CmoRateOverrides />}
+                    {activeScopeTab === 'deals' && selectedScopes.includes('deals') && cmoConfig && (
+                        <CmoRateOverrides note={cmoConfig.note} sections={cmoConfig.sections} />
+                    )}
                 </div>
             </DialogContent>
             <DialogActions>
@@ -1956,13 +2083,7 @@ function ReferenceClientPage(): React.ReactElement {
             <div className="reference-title-row">
                 <div className="reference-title-with-sync">
                     <h1 className="reference-page-title">{draftClient.clientName}</h1>
-                    <SyncStateIndicator
-                        state={clientSyncState}
-                        showLabel
-                        subject="Client"
-                        ariaLabel={`Sync ${draftClient.clientName} client with Curve`}
-                        onClick={() => openSyncDialog(['client'])}
-                    />
+                    <SyncStateIndicator state={clientSyncState} showLabel subject="Curve" />
                 </div>
                 {tab === 'main' && (
                     <div className="reference-actions compact">
@@ -2046,20 +2167,37 @@ function ReferenceClientPage(): React.ReactElement {
                     <span className="reference-highlight-label">Total income</span>
                     <span className="reference-highlight-value">€35,997</span>
                 </div>
-                <div className="reference-highlight">
-                    <span className="reference-highlight-label">Advance</span>
-                    <div
-                        className="reference-advance-bar"
-                        role="progressbar"
-                        aria-label="Advance recouped"
-                        aria-valuemin={0}
-                        aria-valuemax={50000}
-                        aria-valuenow={35997}
-                    >
-                        <div className="reference-advance-bar-fill" style={{ width: '72%' }} />
+                {client.territoryDeals.some((deal) => deal.rateType === 'sliding') ? (
+                    <div className="reference-highlight">
+                        <span className="reference-highlight-label">Sliding scale rate: 12.5%</span>
+                        <div
+                            className="reference-advance-bar"
+                            role="progressbar"
+                            aria-label="Sliding scale progress to next rate"
+                            aria-valuemin={0}
+                            aria-valuemax={50000}
+                            aria-valuenow={14543}
+                        >
+                            <div className="reference-advance-bar-fill" style={{ width: '29%' }} />
+                        </div>
+                        <span className="reference-highlight-sub">€35,457 until €50,000 for 5% rate</span>
                     </div>
-                    <span className="reference-highlight-sub">€35,997 of €50,000 recouped</span>
-                </div>
+                ) : (
+                    <div className="reference-highlight">
+                        <span className="reference-highlight-label">Advance</span>
+                        <div
+                            className="reference-advance-bar"
+                            role="progressbar"
+                            aria-label="Advance recouped"
+                            aria-valuemin={0}
+                            aria-valuemax={50000}
+                            aria-valuenow={35997}
+                        >
+                            <div className="reference-advance-bar-fill" style={{ width: '72%' }} />
+                        </div>
+                        <span className="reference-highlight-sub">€35,997 of €50,000 recouped</span>
+                    </div>
+                )}
                 <div className="reference-highlight">
                     <span className="reference-highlight-status reference-highlight-status-success">
                         REGISTERED
