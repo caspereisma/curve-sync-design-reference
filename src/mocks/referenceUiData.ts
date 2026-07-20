@@ -25,6 +25,7 @@ export interface RightsHolderClientDetails {
     noticePeriod: string;
     advance: string;
     advanceAmount: string;
+    advanceRecoupment: string;
     syncDealTermsWithCurve: string;
     accountBalance: string;
     openingBalance: string;
@@ -188,6 +189,7 @@ const emptyDetails: RightsHolderClientDetails = {
     noticePeriod: '',
     advance: '',
     advanceAmount: '',
+    advanceRecoupment: '',
     syncDealTermsWithCurve: '',
     accountBalance: '',
     openingBalance: '',
@@ -213,10 +215,11 @@ export const referenceCurveSyncData = referenceUiData.curveSync;
 export const referenceRightsHolders: RightsHolderClient[] = referenceUiData.rightsHolders.map((client) => ({
     ...client,
     syncState: client.syncState ?? 'not-synced',
-    details: client.details ?? {
+    details: {
         ...emptyDetails,
         nrpClientId: client.id,
-        royaltiesClientName: client.clientName
+        royaltiesClientName: client.clientName,
+        ...(client.details ?? {})
     },
     territoryDeals: (client.territoryDeals ?? []).map((deal) => ({
         ...deal,

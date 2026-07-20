@@ -87,7 +87,7 @@
         "otherIdentifiers": "",
         "royaltiesClientName": "1008B,1008B Records",
         "royaltiesContractReferences": "",
-        "dealEndDate": "2025-10-31",
+        "dealEndDate": "2026-12-31",
         "accountingFrequency": "Quarterly",
         "currency": "EUR",
         "autoExtend": "No",
@@ -110,18 +110,31 @@
         "bankSwiftNumber": "",
         "bankIbanNumber": "",
         "billingEmail": "royalties@1008b.example",
-        "comments": "Client migrated from the legacy registrations workflow. Keep existing CMO registrations unchanged until the next statement cycle is confirmed."
+        "comments": "Client migrated from the legacy registrations workflow. Keep existing CMO registrations unchanged until the next statement cycle is confirmed.",
+        "advanceRecoupment": ""
       },
       "territoryDeals": [
         {
           "id": "deal-001",
           "territories": "World excluding US",
-          "rateType": "flat",
-          "rate": "4%",
+          "rateType": "sliding",
+          "rate": "5%",
           "startDate": "2017-10-31",
           "endDate": "2026-10-31",
           "status": "CURRENT",
-          "syncState": "requires-sync"
+          "syncState": "synced",
+          "slidingScale": [
+            {
+              "id": "tier-a",
+              "to": "50000",
+              "rate": "12.5%"
+            },
+            {
+              "id": "tier-b",
+              "to": "above",
+              "rate": "5%"
+            }
+          ]
         },
         {
           "id": "deal-002",
@@ -328,7 +341,7 @@
       "id": "173",
       "clientName": "1008C Records",
       "tier": "",
-      "dealStartDate": "",
+      "dealStartDate": "2020-01-01",
       "syncState": "synced",
       "registrations": [
         {
@@ -338,6 +351,47 @@
         {
           "color": "blue",
           "value": 6
+        }
+      ],
+      "details": {
+        "dealEndDate": "2027-12-31",
+        "currency": "EUR",
+        "accountingFrequency": "Quarterly",
+        "noticePeriod": "30 days",
+        "advance": "Yes",
+        "advanceAmount": "50,000",
+        "advanceRecoupment": "in-recoupment"
+      },
+      "territoryDeals": [
+        {
+          "id": "deal-1008c-1",
+          "territories": "World excluding ES, UK",
+          "rateType": "flat",
+          "rate": "5%",
+          "startDate": "2020-01-01",
+          "endDate": "2027-12-31",
+          "status": "CURRENT",
+          "syncState": "synced"
+        },
+        {
+          "id": "deal-1008c-2",
+          "territories": "ES",
+          "rateType": "flat",
+          "rate": "8%",
+          "startDate": "2020-01-01",
+          "endDate": "2027-12-31",
+          "status": "CURRENT",
+          "syncState": "synced"
+        },
+        {
+          "id": "deal-1008c-3",
+          "territories": "UK",
+          "rateType": "flat",
+          "rate": "6%",
+          "startDate": "2020-01-01",
+          "endDate": "2027-12-31",
+          "status": "CURRENT",
+          "syncState": "synced"
         }
       ]
     },
