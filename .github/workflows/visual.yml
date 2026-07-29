@@ -1,10 +1,27 @@
 name: visual-regression
 
+# Keep the two `paths` lists in sync — GitHub Actions does not support YAML
+# anchors, so they have to be spelled out twice.
 on:
   pull_request:
     paths:
       - 'src/**'
       - 'tests/**'
+      # Baseline changes are the highest-risk change to this suite, yet without
+      # this path a rebaseline PR gets no checks at all (see PR #8).
+      - 'screenshots/baseline/**'
+      - 'playwright.config.ts'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/visual.yml'
+  # Also run on main, so a red merge cannot stay invisible: PR #6 merged with a
+  # failing check and nothing re-ran it until an unrelated PR tripped over it.
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'screenshots/baseline/**'
       - 'playwright.config.ts'
       - 'package.json'
       - 'pnpm-lock.yaml'
