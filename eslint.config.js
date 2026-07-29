@@ -8,6 +8,19 @@ export default tseslint.config(
     js.configs.recommended,
     ...tseslint.configs.recommended,
     {
+        // Node tooling: bin/snap.mjs, scripts/*.mjs. `document` appears inside
+        // page.evaluate callbacks, which run in the browser, not in Node.
+        files: ['bin/**/*.mjs', 'scripts/**/*.mjs'],
+        languageOptions: {
+            globals: {
+                console: 'readonly',
+                process: 'readonly',
+                fetch: 'readonly',
+                document: 'readonly'
+            }
+        }
+    },
+    {
         plugins: {
             react: reactPlugin,
             'react-hooks': reactHooks
