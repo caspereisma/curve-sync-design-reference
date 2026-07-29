@@ -16,6 +16,7 @@ import RestoreIcon from '@mui/icons-material/Restore';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import SyncIcon from '@mui/icons-material/Sync';
+import SyncDisabledIcon from '@mui/icons-material/SyncDisabled';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
 import Dialog from '@mui/material/Dialog';
@@ -27,6 +28,9 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
+import Tooltip from '@mui/material/Tooltip';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import { Link, useParams } from 'react-router-dom';
@@ -1688,38 +1692,565 @@ const cmoRateOverridesByClient: Record<string, CmoRateOverridesConfig> = {
             }
         ]
     },
+    // 1008C Records now renders via cmoRateSyncByClient (new-generation dialog).
+};
+
+interface CmoRateSyncSectionConfig {
+    territory: string;
+    caption: string;
+    coveredCmos: string;
+    // 'base': one combined row listing all covered CMOs (the catch-all deal).
+    // 'per-cmo': one row per CMO with an edit action (territory exclusions,
+    // Figma 10841-42545 / 10841-43042 / 10841-43331).
+    variant: 'base' | 'per-cmo';
+    overrides?: Record<string, string>;
+}
+
+interface CmoRateSyncConfig {
+    note: string;
+    sections: CmoRateSyncSectionConfig[];
+}
+
+const exclusionSectionCaption =
+    'Default CMO territories are the CMOs that are included in this territory deal by default. Add an override for CMOs with a rate that is different from the default rate';
+
+const cmoOverrideKey = (territory: string, cmo: string, tierIndex: number | null = null): string =>
+    `${territory}|${cmo}${tierIndex === null ? '' : `|t${tierIndex}`}`;
+
+// Sliding-scale helpers: the active tier follows the client's account balance
+// relative to the income switch point(s).
+const getActiveTierIndex = (client: RightsHolderClient): number | null => {
+    const deal = client.territoryDeals.find(
+        (territoryDeal) => territoryDeal.rateType === 'sliding' && territoryDeal.slidingScale?.length
+    );
+    if (!deal?.slidingScale?.length) {
+        return null;
+    }
+    const balance = parseMoneyValue(client.details.accountBalance);
+    let index = deal.slidingScale.findIndex(
+        (tier) => tier.to !== 'above' && balance <= parseMoneyValue(tier.to)
+    );
+    if (index === -1) {
+        index = deal.slidingScale.findIndex((tier) => tier.to === 'above');
+    }
+    return index === -1 ? null : index;
+};
+
+const getTierRate = (deal: TerritoryDeal, tierIndex: number | null): string =>
+    tierIndex === null ? deal.rate : (deal.slidingScale?.[tierIndex]?.rate ?? deal.rate);
+
+const tierCaption = (tiers: NonNullable<TerritoryDeal['slidingScale']>, index: number): string => {
+    const tier = tiers[index];
+    if (tier.to === 'above') {
+        const previous = tiers[index - 1];
+        return `> ${formatMoneyLabel(previous?.to ?? '0')} (${tier.rate})`;
+    }
+    return `< ${formatMoneyLabel(tier.to)} (${tier.rate})`;
+};
+
+// Seed the mutable override state from the per-client config.
+const buildInitialCmoOverrides = (clientId: string): Record<string, string> => {
+    const config = cmoRateSyncByClient[clientId];
+    const map: Record<string, string> = {};
+    config?.sections.forEach((section) => {
+        Object.entries(section.overrides ?? {}).forEach(([cmo, rate]) => {
+            map[cmoOverrideKey(section.territory, cmo)] = rate;
+        });
+    });
+    return map;
+};
+
+// Territory-deals tab redesign (Figma 10841-36612 / 10841-37752): per-territory
+// CMO rate table comparing the NRP rate against the rate currently in Curve.
+const cmoRateSyncByClient: Record<string, CmoRateSyncConfig> = {
+    // 1008B Records s (sliding scale — sections repeat per rate tier)
+    '172': {
+        note: rightsHolderSyncNote,
+        sections: [
+            {
+                territory: 'World excluding US',
+                caption:
+                    'Worldwide CMOs default set excluding any territory-specific deals which found below. Rate in NRP vs currently in Curve.',
+                coveredCmos: worldCmoTerritories,
+                variant: 'base'
+            },
+            {
+                territory: 'US',
+                caption: exclusionSectionCaption,
+                coveredCmos: 'SOUNDEXCHANGE US, AFTRA US, AFM-AFTRA US, SoundExchange US',
+                variant: 'per-cmo'
+            }
+        ]
+    },
     // 1008C Records
     '173': {
-        note: 'Note: because this is a Rights Holder client, by default a Performer all sources rate at 0% will be synced to Curve',
+        note: rightsHolderSyncNote,
         sections: [
             {
                 territory: 'World excluding ES, UK',
+                caption:
+                    'Worldwide CMOs default set excluding any territory-specific deals which found below. Rate in NRP vs currently in Curve.',
                 coveredCmos: worldCmoTerritories,
-                rate: '5%',
-                rateCaption: 'Flat rate',
-                expandable: true,
-                overridable: false,
-                overrides: []
+                variant: 'base'
             },
             {
                 territory: 'ES',
+                caption: exclusionSectionCaption,
                 coveredCmos: 'AGEDI ES, AIE ES',
-                rate: '8%',
-                rateCaption: 'Flat rate',
-                overridable: true,
-                overrides: [{ cmo: 'AGEDI ES', rate: '5%' }]
+                variant: 'per-cmo',
+                overrides: { 'AGEDI ES': '5%' }
             },
             {
                 territory: 'UK',
+                caption: exclusionSectionCaption,
                 coveredCmos: 'VPL UK, PPL UK',
-                rate: '6%',
-                rateCaption: 'Flat rate',
-                overridable: true,
-                overrides: []
+                variant: 'per-cmo'
+            }
+        ]
+    },
+    // 1008D Records
+    '174': {
+        note: rightsHolderSyncNote,
+        sections: [
+            {
+                territory: 'World',
+                caption:
+                    'Worldwide CMOs default set excluding any territory-specific deals which found below. Rate in NRP vs currently in Curve.',
+                coveredCmos: worldCmoTerritories,
+                variant: 'base'
             }
         ]
     }
 };
+
+// Client-data tab redesign (Figma 10722-10703 / 10840-35902 / 10620-10309):
+// Field · NRP value · Curve value · Sync action. Row state is derived per field
+// by diffing the current client against the last-synced snapshot: never synced →
+// "Not yet synced"; value changed since snapshot → "Sync required" (old Curve
+// value struck through); otherwise "In sync".
+const clientDataSyncRows: Array<{
+    field: string;
+    caption?: string;
+    muted?: boolean;
+    getValue: (_client: RightsHolderClient) => string;
+}> = [
+    { field: 'Foreign ID', muted: true, getValue: (c) => c.details.nrpClientId || c.id },
+    { field: 'Name', caption: 'Payee & Contract', getValue: (c) => c.clientName || 'Not set' },
+    { field: 'Alternate name', getValue: () => 'Not set' },
+    { field: 'Country', getValue: (c) => c.details.bankCountry || 'Not set' },
+    { field: 'Address', muted: true, getValue: (c) => c.details.businessRegisteredAddress || 'Not set' },
+    { field: 'Contact email', muted: true, getValue: (c) => c.details.billingEmail || 'Not set' },
+    { field: 'Categories', muted: true, getValue: () => 'Rights Holder' },
+    { field: 'Currency', caption: 'Contract', getValue: (c) => c.details.currency || 'Not set' }
+];
+
+type SyncRowStatus = 'not-synced' | 'sync-required' | 'in-sync' | 'not-active';
+
+const syncRowStatusPresentation: Record<SyncRowStatus, { label: string; className: string }> = {
+    'in-sync': { label: 'In sync', className: 'insync' },
+    'sync-required': { label: 'Sync required', className: 'syncrequired' },
+    'not-synced': { label: 'Not yet synced', className: 'notsynced' },
+    'not-active': { label: 'Not active', className: 'notactive' }
+};
+
+function SyncActionLabel({ status }: { status: SyncRowStatus }): React.ReactElement {
+    const { label, className } = syncRowStatusPresentation[status];
+    return (
+        <div role="cell" className={`syncaction ${className}`}>
+            {status === 'not-active' ? <SyncDisabledIcon sx={{ fontSize: 20 }} /> : <SyncIcon sx={{ fontSize: 20 }} />}
+            {label}
+        </div>
+    );
+}
+
+function ClientDataSyncTable({
+    client,
+    lastSyncedClient
+}: {
+    client: RightsHolderClient;
+    lastSyncedClient: RightsHolderClient | null;
+}): React.ReactElement {
+    return (
+        <div className="reference-client-sync">
+            <p className="reference-cmo-desc">Fields apply to Payee&rsquo;s unless otherwise indicated</p>
+            <div className="reference-client-sync-table" role="table" aria-label="Client data sync payload">
+                <div className="reference-client-sync-row reference-client-sync-head" role="row">
+                    <div role="columnheader">Field</div>
+                    <div role="columnheader">NRP value</div>
+                    <div role="columnheader">Curve value</div>
+                    <div role="columnheader">Sync action</div>
+                </div>
+                {clientDataSyncRows.map((row) => {
+                    const nrpValue = row.getValue(client);
+                    const curveValue = lastSyncedClient ? row.getValue(lastSyncedClient) : null;
+                    const status: SyncRowStatus =
+                        curveValue === null
+                            ? 'not-synced'
+                            : nrpValue !== curveValue
+                              ? 'sync-required'
+                              : 'in-sync';
+                    return (
+                        <div className="reference-client-sync-row" role="row" key={row.field}>
+                            <div
+                                role="cell"
+                                className={`field${status === 'not-synced' && row.muted ? ' muted' : ''}`}
+                            >
+                                <span>{row.field}</span>
+                                {row.caption && <span className="caption">{row.caption}</span>}
+                            </div>
+                            <div role="cell" className={`value${status === 'in-sync' ? '' : ' pending'}`}>
+                                {nrpValue}
+                            </div>
+                            <div
+                                role="cell"
+                                className={`value${
+                                    status === 'not-synced' ? ' muted' : status === 'sync-required' ? ' old' : ''
+                                }`}
+                            >
+                                {curveValue ?? '-'}
+                            </div>
+                            <SyncActionLabel status={status} />
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
+const cmoRowStatusOf = (nrpRate: string, curveRate: string | null): SyncRowStatus =>
+    curveRate === null ? 'not-synced' : nrpRate !== curveRate ? 'sync-required' : 'in-sync';
+
+interface CmoRateRow {
+    key: string;
+    label: string;
+    clamp: boolean;
+    editable: boolean;
+    nrpRate: string;
+    curveRate: string | null;
+    status: SyncRowStatus;
+    hasPendingOverride: boolean;
+}
+
+interface CmoTierContext {
+    tierIndex: number;
+    activeTierIndex: number;
+    lastSyncedTierIndex: number | null;
+}
+
+const buildCmoRateRows = (
+    section: CmoRateSyncSectionConfig,
+    client: RightsHolderClient,
+    lastSyncedClient: RightsHolderClient | null,
+    overrides: Record<string, string>,
+    lastSyncedOverrides: Record<string, string>,
+    tierCtx?: CmoTierContext
+): CmoRateRow[] => {
+    const deal = client.territoryDeals.find((territoryDeal) => territoryDeal.territories === section.territory);
+    const lastDeal = lastSyncedClient?.territoryDeals.find((territoryDeal) => territoryDeal.id === deal?.id);
+    const tierIndex = tierCtx?.tierIndex ?? null;
+    const isActiveTier = !tierCtx || tierCtx.tierIndex === tierCtx.activeTierIndex;
+    const lastTierIndex = tierCtx ? tierCtx.lastSyncedTierIndex : null;
+    const currentDealRate = deal ? getTierRate(deal, tierIndex) : '—';
+    const curveDealRate = lastDeal ? getTierRate(lastDeal, lastTierIndex) : null;
+    if (section.variant !== 'per-cmo') {
+        return [
+            {
+                key: 'all',
+                label: section.coveredCmos,
+                clamp: true,
+                editable: false,
+                nrpRate: currentDealRate,
+                curveRate: curveDealRate,
+                status: isActiveTier ? cmoRowStatusOf(currentDealRate, curveDealRate) : 'not-active',
+                hasPendingOverride: false
+            }
+        ];
+    }
+    return section.coveredCmos
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .map((cmo) => {
+            const key = cmoOverrideKey(section.territory, cmo, tierIndex);
+            const curveKey = cmoOverrideKey(section.territory, cmo, lastTierIndex);
+            const currentOverride = overrides[key];
+            const nrpRate = currentOverride ?? currentDealRate;
+            const curveRate = lastDeal ? (lastSyncedOverrides[curveKey] ?? curveDealRate) : null;
+            const status = isActiveTier ? cmoRowStatusOf(nrpRate, curveRate) : 'not-active';
+            return {
+                key,
+                label: cmo,
+                clamp: false,
+                editable: isActiveTier,
+                nrpRate,
+                curveRate,
+                status,
+                hasPendingOverride:
+                    status === 'sync-required' && currentOverride !== undefined && currentOverride !== curveRate
+            };
+        });
+};
+
+function CmoRateSyncPanel({
+    config,
+    client,
+    lastSyncedClient,
+    cmoOverrides,
+    lastSyncedOverrides,
+    onSaveOverride
+}: {
+    config: CmoRateSyncConfig;
+    client: RightsHolderClient;
+    lastSyncedClient: RightsHolderClient | null;
+    cmoOverrides: Record<string, string>;
+    lastSyncedOverrides: Record<string, string>;
+    onSaveOverride: (_territory: string, _cmo: string, _rate: string, _tierIndex: number | null) => void;
+}): React.ReactElement {
+    const [editingRow, setEditingRow] = useState<{
+        key: string;
+        territory: string;
+        cmo: string;
+        tierIndex: number | null;
+        draft: string;
+    } | null>(null);
+    const rateTypes = Array.from(new Set(client.territoryDeals.map((deal) => deal.rateType)));
+    const rateTypeLabel = rateTypes.length === 1 ? rateTypes[0] : 'mixed';
+    const slidingDeal = client.territoryDeals.find(
+        (deal) => deal.rateType === 'sliding' && deal.slidingScale?.length
+    );
+    const slidingTiers = slidingDeal?.slidingScale ?? null;
+    const activeTierIndex = getActiveTierIndex(client) ?? 0;
+    const lastSyncedTierIndex = lastSyncedClient ? getActiveTierIndex(lastSyncedClient) : null;
+    const rateTypeText = slidingTiers
+        ? `sliding scale ${slidingTiers.map((_, index) => tierCaption(slidingTiers, index)).join('; ')}`
+        : rateTypeLabel;
+
+    const renderSectionCard = (section: CmoRateSyncSectionConfig, tierCtx?: CmoTierContext): React.ReactElement => {
+        const rows = buildCmoRateRows(section, client, lastSyncedClient, cmoOverrides, lastSyncedOverrides, tierCtx);
+        const disabled = Boolean(tierCtx && tierCtx.tierIndex !== tierCtx.activeTierIndex);
+        return (
+                    <div
+                        className={`reference-cmo-card${disabled ? ' disabled' : ''}`}
+                        key={`${section.territory}${tierCtx ? `-t${tierCtx.tierIndex}` : ''}`}
+                    >
+                        <h5 className="reference-cmo-card-title">{section.territory}</h5>
+                        <span className="reference-cmo-card-caption">{section.caption}</span>
+                        <div
+                            className="reference-cmo-rate-table"
+                            role="table"
+                            aria-label={`CMO rates for ${section.territory}`}
+                        >
+                            <div className="reference-cmo-rate-row reference-cmo-rate-head" role="row">
+                                <div role="columnheader">CMO</div>
+                                <div role="columnheader" className="num">
+                                    NRP rate
+                                </div>
+                                <div role="columnheader" className="num">
+                                    Curve rate
+                                </div>
+                                <div role="columnheader">Sync action</div>
+                                <div role="columnheader" aria-label="Row actions" />
+                            </div>
+                            {rows.map((row) => {
+                                const isEditing = editingRow?.key === row.key;
+                                const saveEdit = (): void => {
+                                    if (!editingRow || !editingRow.draft.trim()) {
+                                        setEditingRow(null);
+                                        return;
+                                    }
+                                    onSaveOverride(
+                                        editingRow.territory,
+                                        editingRow.cmo,
+                                        editingRow.draft,
+                                        editingRow.tierIndex
+                                    );
+                                    setEditingRow(null);
+                                };
+                                return (
+                                    <div
+                                        className={`reference-cmo-rate-row${row.clamp ? '' : ' compact'}`}
+                                        role="row"
+                                        key={row.key}
+                                    >
+                                        <div role="cell" className="cmos">
+                                            <span className={row.clamp ? 'cmos-text' : undefined}>
+                                                {row.label}
+                                            </span>
+                                        </div>
+                                        {isEditing ? (
+                                            <div role="cell" className="num editing">
+                                                <TextField
+                                                    variant="standard"
+                                                    size="small"
+                                                    autoFocus
+                                                    value={editingRow?.draft ?? ''}
+                                                    inputProps={{ 'aria-label': `${row.label} NRP rate` }}
+                                                    InputProps={{
+                                                        endAdornment: (
+                                                            <InputAdornment position="end">%</InputAdornment>
+                                                        )
+                                                    }}
+                                                    onChange={(event) =>
+                                                        setEditingRow((current) =>
+                                                            current
+                                                                ? { ...current, draft: event.target.value }
+                                                                : current
+                                                        )
+                                                    }
+                                                    onKeyDown={(event) => {
+                                                        if (event.key === 'Enter') {
+                                                            saveEdit();
+                                                        }
+                                                        if (event.key === 'Escape') {
+                                                            setEditingRow(null);
+                                                        }
+                                                    }}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div
+                                                role="cell"
+                                                className={`num${row.status === 'in-sync' ? '' : ' pending'}`}
+                                            >
+                                                {row.nrpRate}
+                                                {row.hasPendingOverride && (
+                                                    <Tooltip title="Territory deal default rate override">
+                                                        <span
+                                                            className="reference-cmo-override-warning"
+                                                            aria-label="Territory deal default rate override"
+                                                        >
+                                                            <WarningAmberIcon />
+                                                        </span>
+                                                    </Tooltip>
+                                                )}
+                                            </div>
+                                        )}
+                                        <div
+                                            role="cell"
+                                            className={`num${
+                                                isEditing || row.status === 'not-synced'
+                                                    ? ''
+                                                    : row.status === 'sync-required'
+                                                      ? ' old'
+                                                      : ''
+                                            }`}
+                                        >
+                                            {row.curveRate ?? '-'}
+                                        </div>
+                                        {isEditing ? <div role="cell" /> : <SyncActionLabel status={row.status} />}
+                                        <div role="cell" className={`actions${isEditing ? ' editing' : ''}`}>
+                                            {row.editable && isEditing && (
+                                                <>
+                                                    <button
+                                                        type="button"
+                                                        className="reference-icon-button"
+                                                        aria-label={`Save ${row.label} rate override`}
+                                                        onClick={saveEdit}
+                                                    >
+                                                        <SaveOutlinedIcon sx={{ fontSize: 20 }} />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="reference-icon-button"
+                                                        aria-label={`Cancel editing ${row.label} rate`}
+                                                        onClick={() => setEditingRow(null)}
+                                                    >
+                                                        <CloseIcon sx={{ fontSize: 20 }} />
+                                                    </button>
+                                                </>
+                                            )}
+                                            {row.editable && !isEditing && (
+                                                <button
+                                                    type="button"
+                                                    className="reference-icon-button"
+                                                    aria-label={`Edit ${row.label} rate override`}
+                                                    onClick={() =>
+                                                        setEditingRow({
+                                                            key: row.key,
+                                                            territory: section.territory,
+                                                            cmo: row.label,
+                                                            tierIndex: tierCtx?.tierIndex ?? null,
+                                                            draft: row.nrpRate.replace(/%$/, '')
+                                                        })
+                                                    }
+                                                >
+                                                    <EditOutlinedIcon sx={{ fontSize: 20 }} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+        );
+    };
+
+    return (
+        <div className="reference-cmo-overrides">
+            <p className="reference-cmo-desc">{config.note}</p>
+            <div className="reference-rate-type">
+                <span className="reference-rate-type-label">Rate type: {rateTypeText}</span>
+                <span className="reference-rate-type-caption">Applies to all deals</span>
+            </div>
+            {slidingTiers
+                ? slidingTiers.map((tier, index) => (
+                      <TierSection
+                          key={`${tier.id}-${activeTierIndex}`}
+                          title={`Rate tier ${index + 1}: ${tierCaption(slidingTiers, index)}`}
+                          active={index === activeTierIndex}
+                          defaultExpanded={index === activeTierIndex}
+                      >
+                          {config.sections.map((section) =>
+                              renderSectionCard(section, {
+                                  tierIndex: index,
+                                  activeTierIndex,
+                                  lastSyncedTierIndex
+                              })
+                          )}
+                      </TierSection>
+                  ))
+                : config.sections.map((section) => renderSectionCard(section))}
+        </div>
+    );
+}
+
+function TierSection({
+    title,
+    active,
+    defaultExpanded,
+    children
+}: {
+    title: string;
+    active: boolean;
+    defaultExpanded: boolean;
+    children: React.ReactNode;
+}): React.ReactElement {
+    const [expanded, setExpanded] = useState(defaultExpanded);
+    return (
+        <div className="reference-tier-section">
+            <div className="reference-tier-header">
+                <span className="reference-tier-title">{title}</span>
+                <span className={`reference-tier-chip ${active ? 'active' : 'inactive'}`}>
+                    {active ? 'Active rate tier' : 'Inactive rate tier'}
+                </span>
+                <button
+                    type="button"
+                    className="reference-icon-button reference-tier-toggle"
+                    aria-label={expanded ? `Collapse ${title}` : `Expand ${title}`}
+                    aria-expanded={expanded}
+                    onClick={() => setExpanded((value) => !value)}
+                >
+                    <KeyboardArrowDownIcon
+                        sx={{ fontSize: 24, transform: expanded ? 'rotate(180deg)' : 'none' }}
+                    />
+                </button>
+            </div>
+            {expanded && <div className="reference-tier-body">{children}</div>}
+        </div>
+    );
+}
 
 function CmoOverrideTable({ section }: { section: CmoOverrideSection }): React.ReactElement {
     const [overrides, setOverrides] = useState<CmoRateOverride[]>(section.overrides);
@@ -1900,12 +2431,20 @@ function CmoRateOverrides({ note, sections }: CmoRateOverridesConfig): React.Rea
 
 function CurveSyncDialog({
     client,
+    lastSyncedClient,
+    cmoOverrides,
+    lastSyncedOverrides,
+    onSaveOverride,
     open,
     selectedScopes,
     onClose,
     onSync
 }: {
     client: RightsHolderClient;
+    lastSyncedClient: RightsHolderClient | null;
+    cmoOverrides: Record<string, string>;
+    lastSyncedOverrides: Record<string, string>;
+    onSaveOverride: (_territory: string, _cmo: string, _rate: string, _tierIndex: number | null) => void;
     open: boolean;
     selectedScopes: CurveSyncScope[];
     onClose: () => void;
@@ -1915,7 +2454,44 @@ function CurveSyncDialog({
     const payeePayload = buildPayeePayload(client);
     const contractPayload = buildContractPayload(client);
     const cmoConfig = cmoRateOverridesByClient[client.id];
+    const cmoSyncConfig = cmoRateSyncByClient[client.id];
     const hasSelectedScope = selectedScopes.length > 0;
+    const clientDataInSync =
+        lastSyncedClient !== null &&
+        clientDataSyncRows.every((row) => row.getValue(client) === row.getValue(lastSyncedClient));
+    const dealsInSync =
+        lastSyncedClient !== null &&
+        client.territoryDeals.every((deal) => {
+            const lastDeal = lastSyncedClient.territoryDeals.find(
+                (territoryDeal) => territoryDeal.id === deal.id
+            );
+            return Boolean(lastDeal) && deal.rate === lastDeal?.rate;
+        });
+    const slidingTiersForSync = client.territoryDeals.find(
+        (deal) => deal.rateType === 'sliding' && deal.slidingScale?.length
+    )?.slidingScale;
+    const tierContextsForSync: Array<CmoTierContext | undefined> = slidingTiersForSync
+        ? slidingTiersForSync.map((_, index) => ({
+              tierIndex: index,
+              activeTierIndex: getActiveTierIndex(client) ?? 0,
+              lastSyncedTierIndex: lastSyncedClient ? getActiveTierIndex(lastSyncedClient) : null
+          }))
+        : [undefined];
+    const cmoRowsInSync =
+        !cmoSyncConfig ||
+        cmoSyncConfig.sections.every((section) =>
+            tierContextsForSync.every((tierCtx) =>
+                buildCmoRateRows(
+                    section,
+                    client,
+                    lastSyncedClient,
+                    cmoOverrides,
+                    lastSyncedOverrides,
+                    tierCtx
+                ).every((row) => row.status === 'in-sync' || row.status === 'not-active')
+            )
+        );
+    const allInSync = Boolean(cmoSyncConfig) && clientDataInSync && dealsInSync && cmoRowsInSync;
 
     const renderScopeTabLabel = (label: string): React.ReactNode => (
         <span className="reference-sync-scope-tab-label">{label}</span>
@@ -1937,21 +2513,36 @@ function CurveSyncDialog({
                         <Tab value="deals" label={renderScopeTabLabel('TERRITORY DEALS')} />
                     </Tabs>
 
-                    {activeScopeTab === 'client' && selectedScopes.includes('client') && (
-                        <ClientDataComparisonTable payee={payeePayload} contract={contractPayload} />
-                    )}
+                    {activeScopeTab === 'client' &&
+                        selectedScopes.includes('client') &&
+                        (cmoSyncConfig ? (
+                            <ClientDataSyncTable client={client} lastSyncedClient={lastSyncedClient} />
+                        ) : (
+                            <ClientDataComparisonTable payee={payeePayload} contract={contractPayload} />
+                        ))}
 
-                    {activeScopeTab === 'deals' && selectedScopes.includes('deals') && cmoConfig && (
-                        <CmoRateOverrides note={cmoConfig.note} sections={cmoConfig.sections} />
-                    )}
+                    {activeScopeTab === 'deals' &&
+                        selectedScopes.includes('deals') &&
+                        (cmoSyncConfig ? (
+                            <CmoRateSyncPanel
+                                config={cmoSyncConfig}
+                                client={client}
+                                lastSyncedClient={lastSyncedClient}
+                                cmoOverrides={cmoOverrides}
+                                lastSyncedOverrides={lastSyncedOverrides}
+                                onSaveOverride={onSaveOverride}
+                            />
+                        ) : (
+                            cmoConfig && <CmoRateOverrides note={cmoConfig.note} sections={cmoConfig.sections} />
+                        ))}
                 </div>
             </DialogContent>
             <DialogActions>
                 <Button variant="outlined" color="inherit" onClick={onClose}>
                     Cancel
                 </Button>
-                <Button variant="contained" disabled={!hasSelectedScope} onClick={onSync}>
-                    Sync selected
+                <Button variant="contained" disabled={!hasSelectedScope || allInSync} onClick={onSync}>
+                    Sync with Curve
                 </Button>
             </DialogActions>
         </Dialog>
@@ -1969,6 +2560,15 @@ function ReferenceClientPage(): React.ReactElement {
     const [isSyncDialogOpen, setIsSyncDialogOpen] = useState(false);
     const [selectedSyncScopes, setSelectedSyncScopes] = useState<CurveSyncScope[]>(['client', 'deals']);
     const [clientSyncState, setClientSyncState] = useState<SyncState>(client.syncState);
+    const [lastSyncedClient, setLastSyncedClient] = useState<RightsHolderClient | null>(() =>
+        client.syncState === 'synced' ? cloneRightsHolderClient(client) : null
+    );
+    const [cmoOverrides, setCmoOverrides] = useState<Record<string, string>>(() =>
+        buildInitialCmoOverrides(client.id)
+    );
+    const [lastSyncedOverrides, setLastSyncedOverrides] = useState<Record<string, string>>(() =>
+        client.syncState === 'synced' ? buildInitialCmoOverrides(client.id) : {}
+    );
     const [editingDeal, setEditingDeal] = useState<TerritoryDeal | null>(null);
     const tabIndex = tabByIndex.indexOf(tab);
 
@@ -1979,6 +2579,9 @@ function ReferenceClientPage(): React.ReactElement {
         setIsEditingMainDetails(false);
         setClientSyncState(client.syncState);
         setSyncStateBeforeEdit(client.syncState);
+        setLastSyncedClient(client.syncState === 'synced' ? cloneRightsHolderClient(client) : null);
+        setCmoOverrides(buildInitialCmoOverrides(client.id));
+        setLastSyncedOverrides(client.syncState === 'synced' ? buildInitialCmoOverrides(client.id) : {});
         setSelectedSyncScopes(['client', 'deals']);
         setIsSyncDialogOpen(false);
         setEditingDeal(null);
@@ -2050,7 +2653,8 @@ function ReferenceClientPage(): React.ReactElement {
             territoryDeals: currentClient.territoryDeals.map((deal) =>
                 deal.id === editingDeal.id
                     ? {
-                          ...editingDeal
+                          ...editingDeal,
+                          syncState: 'requires-sync' as SyncState
                       }
                     : deal
             )
@@ -2058,16 +2662,63 @@ function ReferenceClientPage(): React.ReactElement {
 
         setDraftClient(updateClientDeal);
         setSavedClient(updateClientDeal);
+        markClientAsRequiringSync();
         setEditingDeal(null);
     };
 
     const syncSelectedItems = (): void => {
-        if (selectedSyncScopes.includes('client')) {
-            setClientSyncState('synced');
-            setSyncStateBeforeEdit('synced');
-        }
-
+        const syncedClient: RightsHolderClient = {
+            ...cloneRightsHolderClient(draftClient),
+            territoryDeals: draftClient.territoryDeals.map((deal) => ({
+                ...deal,
+                syncState: 'synced' as SyncState
+            }))
+        };
+        setDraftClient(cloneRightsHolderClient(syncedClient));
+        setSavedClient(cloneRightsHolderClient(syncedClient));
+        setLastSyncedClient(cloneRightsHolderClient(syncedClient));
+        setLastSyncedOverrides({ ...cmoOverrides });
+        setClientSyncState('synced');
+        setSyncStateBeforeEdit('synced');
         setIsSyncDialogOpen(false);
+    };
+
+    const saveCmoRateOverride = (
+        territory: string,
+        cmo: string,
+        rawRate: string,
+        tierIndex: number | null
+    ): void => {
+        const trimmed = rawRate.trim().replace(/%$/, '').trim();
+        if (!trimmed) {
+            return;
+        }
+        const rate = `${trimmed}%`;
+        const key = cmoOverrideKey(territory, cmo, tierIndex);
+        const deal = draftClient.territoryDeals.find(
+            (territoryDeal) => territoryDeal.territories === territory
+        );
+        const defaultRate = deal ? getTierRate(deal, tierIndex) : null;
+        setCmoOverrides((current) => {
+            const next = { ...current };
+            if (defaultRate !== null && rate === defaultRate) {
+                delete next[key];
+            } else {
+                next[key] = rate;
+            }
+            return next;
+        });
+        const lastDeal = lastSyncedClient?.territoryDeals.find(
+            (territoryDeal) => territoryDeal.id === deal?.id
+        );
+        const lastTierIndex = lastSyncedClient ? getActiveTierIndex(lastSyncedClient) : null;
+        const curveKey = cmoOverrideKey(territory, cmo, tierIndex === null ? null : lastTierIndex);
+        const syncedEffectiveRate = lastDeal
+            ? (lastSyncedOverrides[curveKey] ?? getTierRate(lastDeal, tierIndex === null ? null : lastTierIndex))
+            : null;
+        if (syncedEffectiveRate === null || rate !== syncedEffectiveRate) {
+            markClientAsRequiringSync();
+        }
     };
 
     return (
@@ -2182,7 +2833,7 @@ function ReferenceClientPage(): React.ReactElement {
                         </div>
                         <span className="reference-highlight-sub">€35,457 until €50,000 for 5% rate</span>
                     </div>
-                ) : (
+                ) : client.details.advanceAmount ? (
                     <div className="reference-highlight">
                         <span className="reference-highlight-label">Advance</span>
                         <div
@@ -2197,7 +2848,7 @@ function ReferenceClientPage(): React.ReactElement {
                         </div>
                         <span className="reference-highlight-sub">€35,997 of €50,000 recouped</span>
                     </div>
-                )}
+                ) : null}
                 <div className="reference-highlight">
                     <span className="reference-highlight-status reference-highlight-status-success">
                         REGISTERED
@@ -2245,6 +2896,10 @@ function ReferenceClientPage(): React.ReactElement {
             {tab === 'cmos' && <CmosTab registrations={client.cmoRegistrations} />}
             <CurveSyncDialog
                 client={draftClient}
+                lastSyncedClient={lastSyncedClient}
+                cmoOverrides={cmoOverrides}
+                lastSyncedOverrides={lastSyncedOverrides}
+                onSaveOverride={saveCmoRateOverride}
                 open={isSyncDialogOpen}
                 selectedScopes={selectedSyncScopes}
                 onClose={() => setIsSyncDialogOpen(false)}

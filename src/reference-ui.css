@@ -966,6 +966,341 @@ body {
     color: var(--nr-text-primary);
 }
 
+.reference-cmo-card-caption {
+    font-size: 12px;
+    line-height: 1.66;
+    letter-spacing: 0.4px;
+    color: var(--nr-text-primary);
+}
+
+/* Rate type indicator (Figma 10841-36612) */
+.reference-rate-type {
+    display: flex;
+    flex-direction: column;
+}
+
+.reference-rate-type-label {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.75;
+    letter-spacing: 0.15px;
+    color: var(--nr-text-primary);
+}
+
+.reference-rate-type-caption {
+    font-size: 12px;
+    line-height: 1.66;
+    letter-spacing: 0.4px;
+    color: var(--nr-text-primary);
+}
+
+/* Per-territory CMO rate table: NRP rate vs Curve rate + sync action */
+.reference-cmo-rate-table {
+    width: 100%;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 4px;
+    padding-bottom: 8px;
+    box-sizing: border-box;
+}
+
+.reference-cmo-rate-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 130px 130px 156px 97px;
+    align-items: center;
+}
+
+.reference-cmo-rate-row > div {
+    padding: 6px 16px;
+    font-size: 14px;
+    letter-spacing: 0.17px;
+    color: var(--nr-text-primary);
+}
+
+.reference-cmo-rate-head {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.reference-cmo-rate-head > div {
+    font-weight: 600;
+    line-height: 24px;
+    white-space: nowrap;
+}
+
+.reference-cmo-rate-row:not(.reference-cmo-rate-head) {
+    min-height: 75px;
+}
+
+.reference-cmo-rate-row.compact {
+    min-height: 46px;
+}
+
+.reference-cmo-rate-row.compact .cmos {
+    padding: 6px 16px;
+}
+
+.reference-cmo-rate-row .actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.reference-cmo-rate-row .actions.editing {
+    justify-content: flex-start;
+    gap: 4px;
+}
+
+.reference-cmo-rate-row .num .reference-cmo-override-warning {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.reference-cmo-rate-row .num .reference-cmo-override-warning .MuiSvgIcon-root {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+    color: var(--nr-warning);
+}
+
+.reference-cmo-rate-row .num.editing {
+    justify-content: flex-start;
+}
+
+.reference-cmo-rate-row .num.editing .MuiTextField-root {
+    width: 100%;
+}
+
+.reference-cmo-rate-row .num.pending {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.reference-cmo-rate-row .cmos {
+    padding: 16px;
+    line-height: 1.43;
+}
+
+.reference-cmo-rate-row .cmos-text {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.reference-cmo-rate-row .num {
+    text-align: right;
+}
+
+.reference-cmo-rate-row .num.pending {
+    color: #e65100;
+    font-weight: 600;
+}
+
+.reference-cmo-rate-row .syncaction {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    letter-spacing: 0.1px;
+    white-space: nowrap;
+}
+
+.reference-cmo-rate-row .syncaction.notsynced {
+    color: rgba(0, 0, 0, 0.56);
+}
+
+.reference-cmo-rate-row .syncaction.insync {
+    color: #2e7d32;
+}
+
+.reference-cmo-rate-row .syncaction.notactive {
+    color: rgba(0, 0, 0, 0.38);
+}
+
+/* Sliding-scale rate tier sections (Figma 10843-44142 / -46316 / -47213) */
+.reference-tier-section {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-top: 8px;
+}
+
+.reference-tier-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-bottom: 1px solid var(--nr-divider);
+    padding-bottom: 8px;
+}
+
+.reference-tier-title {
+    font-size: 24px;
+    font-weight: 400;
+    line-height: 1.33;
+    letter-spacing: 0;
+    color: var(--nr-text-primary);
+}
+
+.reference-tier-chip {
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    padding: 4px 8px;
+    box-sizing: border-box;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.reference-tier-chip.active {
+    background: #e3f6e9;
+    border: 1px solid rgba(46, 125, 50, 0.5);
+    color: #1b5e20;
+}
+
+.reference-tier-chip.inactive {
+    background: rgba(0, 0, 0, 0.12);
+    border: 1px solid rgba(64, 64, 65, 0.5);
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.reference-tier-toggle {
+    margin-left: auto;
+}
+
+.reference-tier-body {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Inactive tier cards render disabled */
+.reference-cmo-card.disabled .reference-cmo-card-title,
+.reference-cmo-card.disabled .reference-cmo-card-caption,
+.reference-cmo-card.disabled .reference-cmo-rate-row > div,
+.reference-cmo-card.disabled .reference-cmo-rate-row .num {
+    color: rgba(0, 0, 0, 0.38);
+}
+
+.reference-cmo-card.disabled .reference-cmo-rate-head > div {
+    color: rgba(0, 0, 0, 0.38);
+}
+
+.reference-cmo-rate-row .syncaction.syncrequired {
+    color: #ef6c00;
+}
+
+.reference-cmo-rate-row .syncaction .MuiSvgIcon-root,
+.reference-client-sync-row .syncaction .MuiSvgIcon-root {
+    color: inherit;
+}
+
+.reference-cmo-rate-row .num.old {
+    text-decoration: line-through;
+    color: var(--nr-text-secondary);
+    font-weight: 400;
+}
+
+/* Client-data sync payload table (Figma 10722-10703 / 10840-35902) */
+.reference-client-sync {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.reference-client-sync-table {
+    width: 100%;
+    background: #ffffff;
+}
+
+.reference-client-sync-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 156px;
+    align-items: center;
+}
+
+.reference-client-sync-row > div {
+    padding: 6px 16px;
+    font-size: 14px;
+    letter-spacing: 0.17px;
+    color: var(--nr-text-primary);
+}
+
+.reference-client-sync-head {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.reference-client-sync-head > div {
+    font-weight: 600;
+    line-height: 24px;
+    white-space: nowrap;
+}
+
+.reference-client-sync-row .field {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.43;
+}
+
+.reference-client-sync-row .field.muted {
+    color: rgba(0, 0, 0, 0.38);
+}
+
+.reference-client-sync-row .field .caption {
+    font-size: 12px;
+    line-height: 1.66;
+    letter-spacing: 0.4px;
+    color: var(--nr-text-secondary);
+}
+
+.reference-client-sync-row .value {
+    line-height: 1.43;
+}
+
+.reference-client-sync-row .value.pending {
+    color: #ef6c00;
+    font-weight: 600;
+    letter-spacing: 0.1px;
+}
+
+.reference-client-sync-row .value.muted {
+    color: rgba(0, 0, 0, 0.38);
+}
+
+.reference-client-sync-row .syncaction {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    letter-spacing: 0.1px;
+    white-space: nowrap;
+}
+
+.reference-client-sync-row .syncaction.notsynced {
+    color: rgba(0, 0, 0, 0.56);
+}
+
+.reference-client-sync-row .syncaction.insync {
+    color: #2e7d32;
+}
+
+.reference-client-sync-row .syncaction.syncrequired {
+    color: #ef6c00;
+}
+
+.reference-client-sync-row .value.old {
+    text-decoration: line-through;
+    color: var(--nr-text-secondary);
+}
+
 .reference-cmo-table {
     width: 100%;
     background: #ffffff;
@@ -1705,8 +2040,8 @@ body {
 }
 
 .reference-rate-tier-active {
-    color: var(--nr-success);
-    font-weight: 700;
+    color: var(--nr-text-primary);
+    font-weight: 400;
 }
 
 .reference-content-panel {
