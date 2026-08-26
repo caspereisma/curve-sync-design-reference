@@ -35,8 +35,11 @@ import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import { Link, useParams } from 'react-router-dom';
 
+import { isoCountries } from '../data/isoCountries';
+import { SlidingScaleDiamond } from '../components/SlidingScaleDiamond';
 import { SyncStateIndicator, syncStateLabels } from '../components/SyncStateIndicator';
 import {
+    getReferencePerformerById,
     getReferenceRightsHolderById,
     referenceCurveSyncData,
     type CmoRegistration,
@@ -51,6 +54,7 @@ import {
 
 type ClientTab = 'main' | 'repertoire' | 'statements' | 'cmos';
 type CurveSyncScope = 'client' | 'deals';
+type ClientKind = 'rights-holder' | 'performer';
 
 interface DetailFieldProps {
     label: string;
@@ -67,6 +71,15 @@ const tabByIndex: ClientTab[] = ['main', 'repertoire', 'statements', 'cmos'];
 const mainDetailSections = [
     { id: 'general', label: 'General' },
     { id: 'identifiers', label: 'Identifiers' },
+    { id: 'contacts', label: 'Contacts & Users' },
+    { id: 'deal-terms', label: 'Deal Terms' },
+    { id: 'billing', label: 'Billing' },
+    { id: 'comments', label: 'Comments' }
+];
+const performerDetailSections = [
+    { id: 'general', label: 'General' },
+    { id: 'identifiers', label: 'Identifiers' },
+    { id: 'bio', label: 'Bio' },
     { id: 'contacts', label: 'Contacts & Users' },
     { id: 'deal-terms', label: 'Deal Terms' },
     { id: 'billing', label: 'Billing' },
@@ -145,16 +158,147 @@ function SelectLikeField({
     label,
     value,
     editable,
+    outOfSync = false,
     onChange
-}: Pick<DetailFieldProps, 'editable' | 'label' | 'onChange' | 'value'>): React.ReactElement {
+}: Pick<DetailFieldProps, 'editable' | 'label' | 'onChange' | 'outOfSync' | 'value'>): React.ReactElement {
     return (
         <DetailField
             label={label}
             value={value}
             editable={editable}
+            outOfSync={outOfSync}
             onChange={onChange}
             icon={!editable && <KeyboardArrowDownIcon sx={{ marginLeft: 'auto', fontSize: 18, color: '#777' }} />}
         />
+    );
+}
+
+const isoCountrySelectOptions = [...isoCountries]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((country) => ({ value: country.code, label: `${country.name} (${country.code})` }));
+
+const currencySelectOptions = ['EUR', 'GBP', 'USD'].map((code) => ({ value: code, label: code }));
+
+function OptionSelectField({
+    label,
+    value = '',
+    editable,
+    outOfSync = false,
+    onChange,
+    options
+}: Pick<DetailFieldProps, 'editable' | 'label' | 'onChange' | 'outOfSync' | 'value'> & {
+    options: Array<{ value: string; label: string }>;
+}): React.ReactElement {
+    if (!editable) {
+        return <SelectLikeField label={label} value={value} outOfSync={outOfSync} />;
+    }
+    return (
+        <div className="reference-field">
+            <span className="reference-field-label">{label}</span>
+            <div className="reference-field-value">
+                <select
+                    aria-label={label}
+                    className="reference-field-input"
+                    value={value}
+                    onChange={(event) => onChange?.(event.target.value)}
+                >
+                    <option value="" />
+                    {options.map((option) => (
+                        <option key={option.value} value={option.value}>
+                            {option.label}
+                        </option>
+                    ))}
+                </select>
+            </div>
+            {outOfSync && (
+                <span className="reference-field-helper" role="status">
+                    Sync with Curve
+                </span>
+            )}
+        </div>
+    );
+}
+
+function ArtistTypeField({
+    mainArtist,
+    sessionArtist,
+    editable,
+    onChange
+}: {
+    mainArtist: string;
+    sessionArtist: string;
+    editable?: boolean;
+    onChange?: (_field: 'artistTypeMain' | 'artistTypeSession', _value: string) => void;
+}): React.ReactElement {
+    return (
+        <div className="reference-artist-type-field">
+            <span className="reference-field-label">Artist type</span>
+            <label>
+                <Checkbox
+                    size="small"
+                    disabled={!editable}
+                    checked={mainArtist === 'Yes'}
+                    onChange={(event) => onChange?.('artistTypeMain', event.target.checked ? 'Yes' : '')}
+                    inputProps={{ 'aria-label': 'Main artist' }}
+                />
+                Main artist
+            </label>
+            <label>
+                <Checkbox
+                    size="small"
+                    disabled={!editable}
+                    checked={sessionArtist === 'Yes'}
+                    onChange={(event) => onChange?.('artistTypeSession', event.target.checked ? 'Yes' : '')}
+                    inputProps={{ 'aria-label': 'Session artist' }}
+                />
+                Session artist
+            </label>
+        </div>
+    );
+}
+
+const currencySymbols: Record<string, string> = { EUR: '€', GBP: '£', USD: '$' };
+
+const currencySymbolFor = (currency: string): string => currencySymbols[currency] ?? (currency || '€');
+
+function MinimumRoyaltyPayoutField({
+    amount,
+    currency,
+    editable,
+    outOfSync = false,
+    onChange
+}: {
+    amount: string;
+    currency: string;
+    editable?: boolean;
+    outOfSync?: boolean;
+    onChange?: (_value: string) => void;
+}): React.ReactElement {
+    return (
+        <div className="reference-field">
+            <span className="reference-field-label">Minimum royalty payout</span>
+            <div className="reference-field-value">
+                <span className="reference-advance-currency">{currencySymbolFor(currency)}</span>
+                {editable ? (
+                    <input
+                        aria-label="Minimum royalty payout"
+                        className="reference-field-input"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={amount}
+                        onChange={(event) => onChange?.(event.target.value)}
+                    />
+                ) : (
+                    <span>{amount}</span>
+                )}
+            </div>
+            {outOfSync && (
+                <span className="reference-field-helper" role="status">
+                    Sync with Curve
+                </span>
+            )}
+        </div>
     );
 }
 
@@ -272,6 +416,12 @@ function TerritoryDealsTable({
                         <span>{deal.territories}</span>
                     </div>
                     <div className="reference-table-cell" role="cell">
+                        {deal.rateType === 'sliding' && (
+                            <SlidingScaleDiamond
+                                passed={hasPassedSlidingSwitchPoint(deal, accountBalance)}
+                                className="reference-rate-diamond"
+                            />
+                        )}
                         {getDealRateLabel(deal, accountBalance)}
                     </div>
                     <div className="reference-table-cell" role="cell">
@@ -310,12 +460,18 @@ function TerritoryDealsTable({
 
 function MainDetailsTab({
     client,
+    clientType,
+    syncState,
+    lastSyncedClient,
     isEditing,
     onClientFieldChange,
     onDetailFieldChange,
     onEditDeal
 }: {
     client: RightsHolderClient;
+    clientType: ClientKind;
+    syncState: SyncState;
+    lastSyncedClient: RightsHolderClient | null;
     isEditing: boolean;
     onClientFieldChange: (_field: 'clientName' | 'dealStartDate' | 'tier', _value: string) => void;
     onDetailFieldChange: (_field: keyof RightsHolderClientDetails, _value: string) => void;
@@ -323,7 +479,14 @@ function MainDetailsTab({
 }): React.ReactElement {
     const [activeSection, setActiveSection] = useState(mainDetailSections[0].id);
     const { details } = client;
+    const isPerformer = clientType === 'performer';
+    const detailSections = isPerformer ? performerDetailSections : mainDetailSections;
     const showOutOfSync = client.syncState === 'requires-sync';
+    // Curve-synced fields flag per-field drift: changed vs the last synced
+    // snapshot (or never synced) while the client requires sync.
+    const fieldOutOfSync = (getValue: (_c: RightsHolderClient) => string): boolean =>
+        syncState === 'requires-sync' &&
+        (!lastSyncedClient || getValue(client) !== getValue(lastSyncedClient));
     const updateDetail = (field: keyof RightsHolderClientDetails) => (value: string): void =>
         onDetailFieldChange(field, value);
     const updateClient = (field: 'clientName' | 'dealStartDate' | 'tier') => (value: string): void =>
@@ -332,7 +495,7 @@ function MainDetailsTab({
     return (
         <div className="reference-detail-content">
             <aside className="reference-side-nav" aria-label="Main details sections">
-                {mainDetailSections.map((section) => (
+                {detailSections.map((section) => (
                     <a
                         key={section.id}
                         className={activeSection === section.id ? 'active' : undefined}
@@ -354,14 +517,47 @@ function MainDetailsTab({
                 <section className="reference-section" id="general">
                     <h2 className="reference-section-title">General</h2>
                     <div className="reference-field-grid">
-                        <DetailField
-                            label="Client Name/Legal Company *"
-                            value={client.clientName}
-                            editable={isEditing}
-                            outOfSync={showOutOfSync}
-                            onChange={updateClient('clientName')}
-                        />
-                        <DetailPlaceholder />
+                        {isPerformer ? (
+                            <>
+                                <DetailField
+                                    label="First name(s) *"
+                                    value={details.firstNames}
+                                    editable={isEditing}
+                                    outOfSync={showOutOfSync}
+                                    onChange={updateDetail('firstNames')}
+                                />
+                                <DetailField
+                                    label="Surname *"
+                                    value={details.surname}
+                                    editable={isEditing}
+                                    outOfSync={showOutOfSync}
+                                    onChange={updateDetail('surname')}
+                                />
+                                <DetailField
+                                    label="Aliases"
+                                    value={details.aliases}
+                                    editable={isEditing}
+                                    onChange={updateDetail('aliases')}
+                                />
+                                <DetailField
+                                    label="Artist name(s)"
+                                    value={details.artistNames}
+                                    editable={isEditing}
+                                    onChange={updateDetail('artistNames')}
+                                />
+                            </>
+                        ) : (
+                            <>
+                                <DetailField
+                                    label="Client Name/Legal Company *"
+                                    value={client.clientName}
+                                    editable={isEditing}
+                                    outOfSync={showOutOfSync}
+                                    onChange={updateClient('clientName')}
+                                />
+                                <DetailPlaceholder />
+                            </>
+                        )}
                         <DetailField
                             label="Business Registered Address"
                             value={details.businessRegisteredAddress}
@@ -382,12 +578,32 @@ function MainDetailsTab({
                             editable={isEditing}
                             onChange={updateClient('tier')}
                         />
-                        <DetailField
-                            label="Sub-labels"
-                            value={details.subLabels}
-                            editable={isEditing}
-                            onChange={updateDetail('subLabels')}
-                        />
+                        {isPerformer ? (
+                            <ArtistTypeField
+                                mainArtist={details.artistTypeMain}
+                                sessionArtist={details.artistTypeSession}
+                                editable={isEditing}
+                                onChange={(field, value) => onDetailFieldChange(field, value)}
+                            />
+                        ) : (
+                            <>
+                                <DetailField
+                                    label="Sub-labels"
+                                    value={details.subLabels}
+                                    editable={isEditing}
+                                    onChange={updateDetail('subLabels')}
+                                />
+                                <OptionSelectField
+                                    label="Country of Residence"
+                                    value={details.countryOfResidence}
+                                    editable={isEditing}
+                                    outOfSync={fieldOutOfSync((c) => c.details.countryOfResidence)}
+                                    onChange={updateDetail('countryOfResidence')}
+                                    options={isoCountrySelectOptions}
+                                />
+                                <DetailPlaceholder />
+                            </>
+                        )}
                     </div>
                 </section>
 
@@ -400,26 +616,51 @@ function MainDetailsTab({
                             editable={isEditing}
                             onChange={updateDetail('nrpClientId')}
                         />
-                        <DetailPlaceholder />
-                        <DetailField
-                            label="FUGA Org ID"
-                            value={details.fugaOrgId}
-                            editable={isEditing}
-                            onChange={updateDetail('fugaOrgId')}
-                        />
-                        <DetailField
-                            label="DDEX Party ID"
-                            value={details.ddexPartyId}
-                            editable={isEditing}
-                            onChange={updateDetail('ddexPartyId')}
-                        />
-                        <DetailField
-                            label="Other Identifiers"
-                            value={details.otherIdentifiers}
-                            editable={isEditing}
-                            onChange={updateDetail('otherIdentifiers')}
-                        />
-                        <DetailPlaceholder />
+                        {isPerformer ? (
+                            <>
+                                <DetailField
+                                    label="Other identifiers"
+                                    value={details.otherIdentifiers}
+                                    editable={isEditing}
+                                    onChange={updateDetail('otherIdentifiers')}
+                                />
+                                <DetailField
+                                    label="IPN"
+                                    value={details.ipn}
+                                    editable={isEditing}
+                                    onChange={updateDetail('ipn')}
+                                />
+                                <DetailField
+                                    label="Spotify Artist IDs"
+                                    value={details.spotifyArtistIds}
+                                    editable={isEditing}
+                                    onChange={updateDetail('spotifyArtistIds')}
+                                />
+                            </>
+                        ) : (
+                            <>
+                                <DetailPlaceholder />
+                                <DetailField
+                                    label="FUGA Org ID"
+                                    value={details.fugaOrgId}
+                                    editable={isEditing}
+                                    onChange={updateDetail('fugaOrgId')}
+                                />
+                                <DetailField
+                                    label="DDEX Party ID"
+                                    value={details.ddexPartyId}
+                                    editable={isEditing}
+                                    onChange={updateDetail('ddexPartyId')}
+                                />
+                                <DetailField
+                                    label="Other Identifiers"
+                                    value={details.otherIdentifiers}
+                                    editable={isEditing}
+                                    onChange={updateDetail('otherIdentifiers')}
+                                />
+                                <DetailPlaceholder />
+                            </>
+                        )}
                         <DetailField
                             outOfSync={showOutOfSync}
                             label="Royalties Client Name"
@@ -435,6 +676,49 @@ function MainDetailsTab({
                         />
                     </div>
                 </section>
+
+                {isPerformer && (
+                    <section className="reference-section" id="bio">
+                        <h2 className="reference-section-title">Bio</h2>
+                        <div className="reference-field-grid">
+                            <DetailField
+                                label="Date of birth"
+                                value={details.dateOfBirth}
+                                editable={isEditing}
+                                icon={!isEditing && <CalendarTodayIcon sx={{ marginLeft: 'auto', fontSize: 16, color: '#777' }} />}
+                                onChange={updateDetail('dateOfBirth')}
+                            />
+                            <DetailField
+                                label="Nationality"
+                                value={details.nationality}
+                                editable={isEditing}
+                                onChange={updateDetail('nationality')}
+                            />
+                            <DetailField
+                                label="Place of birth"
+                                value={details.placeOfBirth}
+                                editable={isEditing}
+                                onChange={updateDetail('placeOfBirth')}
+                            />
+                            <OptionSelectField
+                                label="Country of birth"
+                                value={details.countryOfBirth}
+                                editable={isEditing}
+                                onChange={updateDetail('countryOfBirth')}
+                                options={isoCountrySelectOptions}
+                            />
+                            <OptionSelectField
+                                label="Countries of residence"
+                                value={details.countriesOfResidence}
+                                editable={isEditing}
+                                outOfSync={fieldOutOfSync((c) => c.details.countriesOfResidence)}
+                                onChange={updateDetail('countriesOfResidence')}
+                                options={isoCountrySelectOptions}
+                            />
+                            <DetailPlaceholder />
+                        </div>
+                    </section>
+                )}
 
                 <section className="reference-section" id="contacts">
                     <h2 className="reference-section-title">Contacts &amp; Users</h2>
@@ -477,11 +761,12 @@ function MainDetailsTab({
                             editable={isEditing}
                             onChange={updateDetail('accountingFrequency')}
                         />
-                        <SelectLikeField
+                        <OptionSelectField
                             label="Currency *"
                             value={details.currency}
                             editable={isEditing}
                             onChange={updateDetail('currency')}
+                            options={currencySelectOptions}
                         />
                         <AutoExtendField />
                         <SelectLikeField
@@ -491,7 +776,13 @@ function MainDetailsTab({
                             onChange={updateDetail('noticePeriod')}
                         />
                         <AdvanceField amount={details.advanceAmount} recoupment={details.advanceRecoupment} />
-                        <DetailPlaceholder />
+                        <MinimumRoyaltyPayoutField
+                            amount={details.minimumRoyaltyPayout}
+                            currency={details.currency}
+                            editable={isEditing}
+                            outOfSync={fieldOutOfSync((c) => c.details.minimumRoyaltyPayout)}
+                            onChange={updateDetail('minimumRoyaltyPayout')}
+                        />
                     </div>
                     <div className="reference-subsection-header">
                         <div className="reference-title-with-sync">
@@ -1212,6 +1503,16 @@ const getEffectiveDealRate = (deal: TerritoryDeal, accountBalance: string): stri
     return numericTier?.rate ?? aboveTier?.rate ?? deal.rate;
 };
 
+const hasPassedSlidingSwitchPoint = (deal: TerritoryDeal, accountBalance: string): boolean => {
+    if (deal.rateType !== 'sliding' || !deal.slidingScale?.length) {
+        return false;
+    }
+
+    const balance = parseMoneyValue(accountBalance);
+
+    return !deal.slidingScale.some((tier) => tier.to !== 'above' && balance <= parseMoneyValue(tier.to));
+};
+
 const getDealRateLabel = (
     deal: TerritoryDeal,
     accountBalance: string,
@@ -1658,6 +1959,9 @@ const worldCmoTerritories =
 const rightsHolderSyncNote =
     'Because this is a Rights Holder client, by default a Performer all sources rate at 0% will be synced to Curve';
 
+const performerSyncNote =
+    'Because this is a Performer client, by default a Rights Holder all sources rate at 0% will be synced to Curve';
+
 const slidingScaleRateCaption = 'Sliding scale rate: < €50,000 (12.5%); > €50,000 (5%)';
 
 interface CmoRateOverridesConfig {
@@ -1820,6 +2124,37 @@ const cmoRateSyncByClient: Record<string, CmoRateSyncConfig> = {
                 variant: 'base'
             }
         ]
+    },
+    // Example Performing Artist A (sliding scale, single World deal)
+    p1: {
+        note: performerSyncNote,
+        sections: [
+            {
+                territory: 'World',
+                caption:
+                    'Worldwide CMOs default set excluding any territory-specific deals which found below. Rate in NRP vs currently in Curve.',
+                coveredCmos: worldCmoTerritories,
+                variant: 'base'
+            }
+        ]
+    },
+    // Example Performing Artist B (no deals yet)
+    p2: {
+        note: performerSyncNote,
+        sections: []
+    },
+    // Example Performing Artist C (flat Europe deal)
+    p3: {
+        note: performerSyncNote,
+        sections: [
+            {
+                territory: 'Europe',
+                caption:
+                    'Worldwide CMOs default set excluding any territory-specific deals which found below. Rate in NRP vs currently in Curve.',
+                coveredCmos: worldCmoTerritories,
+                variant: 'base'
+            }
+        ]
     }
 };
 
@@ -1838,10 +2173,23 @@ const clientDataSyncRows: Array<{
     { field: 'Name', caption: 'Payee & Contract', getValue: (c) => c.clientName || 'Not set' },
     { field: 'Alternate name', getValue: () => 'Not set' },
     { field: 'Country', getValue: (c) => c.details.bankCountry || 'Not set' },
+    {
+        field: 'Country of residence',
+        // One logical Curve field per client type: rights holders store it in
+        // General (countryOfResidence), performers in Bio (countriesOfResidence).
+        getValue: (c) => c.details.countryOfResidence || c.details.countriesOfResidence || 'Not set'
+    },
     { field: 'Address', muted: true, getValue: (c) => c.details.businessRegisteredAddress || 'Not set' },
     { field: 'Contact email', muted: true, getValue: (c) => c.details.billingEmail || 'Not set' },
     { field: 'Categories', muted: true, getValue: () => 'Rights Holder' },
-    { field: 'Currency', caption: 'Contract', getValue: (c) => c.details.currency || 'Not set' }
+    { field: 'Currency', caption: 'Contract', getValue: (c) => c.details.currency || 'Not set' },
+    {
+        field: 'Minimum royalty payout',
+        getValue: (c) =>
+            c.details.minimumRoyaltyPayout
+                ? `${currencySymbolFor(c.details.currency)} ${c.details.minimumRoyaltyPayout}`
+                : 'Not set'
+    }
 ];
 
 type SyncRowStatus = 'not-synced' | 'sync-required' | 'in-sync' | 'not-active';
@@ -2191,7 +2539,15 @@ function CmoRateSyncPanel({
         <div className="reference-cmo-overrides">
             <p className="reference-cmo-desc">{config.note}</p>
             <div className="reference-rate-type">
-                <span className="reference-rate-type-label">Rate type: {rateTypeText}</span>
+                <span className="reference-rate-type-label">
+                    {slidingTiers && (
+                        <SlidingScaleDiamond
+                            passed={slidingTiers[activeTierIndex]?.to === 'above'}
+                            className="reference-rate-diamond"
+                        />
+                    )}
+                    Rate type: {rateTypeText}
+                </span>
                 <span className="reference-rate-type-caption">Applies to all deals</span>
             </div>
             {slidingTiers
@@ -2549,10 +2905,14 @@ function CurveSyncDialog({
     );
 }
 
-function ReferenceClientPage(): React.ReactElement {
+function ReferenceClientPage({ clientType = 'rights-holder' }: { clientType?: ClientKind }): React.ReactElement {
     const { id } = useParams<{ id?: string }>();
     const [tab, setTab] = useState<ClientTab>('main');
-    const client = useMemo(() => getReferenceRightsHolderById(id), [id]);
+    const isPerformer = clientType === 'performer';
+    const client = useMemo(
+        () => (isPerformer ? getReferencePerformerById(id) : getReferenceRightsHolderById(id)),
+        [id, isPerformer]
+    );
     const [savedClient, setSavedClient] = useState<RightsHolderClient>(() => cloneRightsHolderClient(client));
     const [draftClient, setDraftClient] = useState<RightsHolderClient>(() => cloneRightsHolderClient(client));
     const [isEditingMainDetails, setIsEditingMainDetails] = useState(false);
@@ -2726,7 +3086,7 @@ function ReferenceClientPage(): React.ReactElement {
             <div className="reference-breadcrumbs">
                 <Link to="/rights-holders">Clients</Link>
                 <span>/</span>
-                <Link to="/rights-holders">Rights Holders</Link>
+                {isPerformer ? <span>Performers</span> : <Link to="/rights-holders">Rights Holders</Link>}
                 <span>/</span>
                 <strong>{draftClient.clientName}</strong>
             </div>
@@ -2885,6 +3245,9 @@ function ReferenceClientPage(): React.ReactElement {
             {tab === 'main' && (
                 <MainDetailsTab
                     client={draftClient}
+                    clientType={clientType}
+                    syncState={clientSyncState}
+                    lastSyncedClient={lastSyncedClient}
                     isEditing={isEditingMainDetails}
                     onClientFieldChange={updateDraftClientField}
                     onDetailFieldChange={updateDraftDetailField}

@@ -40,7 +40,9 @@ const DEFAULT_OUT = resolve(
 );
 
 const SHOTS = [
+    ['01-rights-holders-list.png', 'rights-holder list, full page'],
     ['02-client-detail-main.png', '1008D main details, full page (no progress tile)'],
+    ['12-performer-detail-main.png', 'Example Performing Artist A (p1) main details, full page'],
     ['territory-deals-table-1008b.png', '1008B territory deals table (element clip)'],
     ['sync-client-data-never-synced-1008d.png', 'client data tab, never synced'],
     ['sync-territory-deals-never-synced-1008d.png', 'territory deals tab, never synced'],
@@ -149,6 +151,14 @@ async function openSyncDialog() {
     await page.waitForTimeout(300);
 }
 
+// ── Rights-holder list ───────────────────────────────────────────────────────
+await goto('/rights-holders');
+await shot('01-rights-holders-list.png', { fullPage: true });
+
+// ── Performer detail (p1): staging-parity performer sections ────────────────
+await goto('/performer-page/p1');
+await shot('12-performer-detail-main.png', { fullPage: true });
+
 // ── 1008D Records (174): never synced → synced → renamed ────────────────────
 await goto('/rights-holder-page/174');
 await shot('02-client-detail-main.png', { fullPage: true });
@@ -238,7 +248,6 @@ await shot('sync-tiers-after-crossing-1008b.png');
 
 await browser.close();
 
-const expected = SHOTS.map(([file]) => file);
-const missing = expected.filter((file) => !captured.includes(file));
+const missing = selectedFiles.filter((file) => !captured.includes(file));
 if (missing.length) bail(`missing captures: ${missing.join(', ')}`);
 console.log(`\ncapture-spec-assets: ${captured.length} shots written to ${OUT}`);

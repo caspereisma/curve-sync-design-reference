@@ -1952,6 +1952,7 @@ body {
 .reference-field-input {
     width: 100%;
     min-width: 0;
+    margin: 0;
     padding: 0;
     border: 0;
     background: transparent;
@@ -1968,6 +1969,22 @@ body {
 
 .reference-field-input:focus {
     background: #f4f4f4;
+}
+
+select.reference-field-input {
+    height: 30px;
+    cursor: pointer;
+}
+
+.reference-field-input[type='number'] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+.reference-field-input[type='number']::-webkit-inner-spin-button,
+.reference-field-input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 .reference-field-helper {
@@ -2001,6 +2018,23 @@ body {
     display: inline-flex;
     width: fit-content;
     align-items: center;
+}
+
+.reference-artist-type-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.reference-artist-type-field label {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    color: #3d3d3f;
+    font-size: 14px;
+}
+
+.reference-artist-type-field label:has(.Mui-disabled) {
+    color: #b4b4b6;
 }
 
 .reference-autoextend-field {
