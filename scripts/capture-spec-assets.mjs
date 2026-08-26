@@ -69,7 +69,13 @@ function parseArgs() {
     const out = outIndex === -1 ? DEFAULT_OUT : args[outIndex + 1];
     if (!out) bail('--out needs a directory');
     if (!existsSync(out)) bail(`output directory does not exist: ${out}`);
-    return { out };
+    // --only a,b,c  → write only shots whose filename contains one of the
+    // substrings. Interactions still run (later shots depend on the state
+    // chain), but untargeted PNGs are left untouched on disk.
+    const onlyIndex = args.indexOf('--only');
+    const only = onlyIndex === -1 ? null : (args[onlyIndex + 1] ?? '').split(',').filter(Boolean);
+    if (onlyIndex !== -1 && (!only || only.length === 0)) bail('--only needs a comma-separated list');
+    return { out, only };
 }
 
 async function waitForServer(url, timeoutMs) {
@@ -93,12 +99,23 @@ async function ensureServer() {
     if (!(await waitForServer(BASE, 60_000))) bail('dev server did not start on :3101');
 }
 
-const { out: OUT } = parseArgs();
+const { out: OUT, only: ONLY } = parseArgs();
 await ensureServer();
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1440, height: 1024 } });
 const captured = [];
+
+const isSelected = (name) => !ONLY || ONLY.some((fragment) => name.includes(fragment));
+const selectedFiles = SHOTS.map(([file]) => file).filter(isSelected);
+if (selectedFiles.length === 0) bail('--only matched no shots (see --list)');
+
+async function maybeFinishEarly() {
+    if (!ONLY || !selectedFiles.every((file) => captured.includes(file))) return;
+    await browser.close();
+    console.log(`\ncapture-spec-assets: ${captured.length} shots written to ${OUT}`);
+    process.exit(0);
+}
 
 async function goto(path) {
     await page.goto(`${BASE}/#${path}`);
@@ -111,10 +128,12 @@ async function goto(path) {
 }
 
 async function shot(name, opts = {}) {
+    if (!isSelected(name)) return;
     await page.waitForTimeout(250);
     await page.screenshot({ path: join(OUT, name), ...opts });
     captured.push(name);
     console.log('•', name);
+    await maybeFinishEarly();
 }
 
 const headerButton = (name) =>
@@ -174,11 +193,14 @@ await dialogAction('Cancel').click();
 
 // ── 1008B Records s (172): sliding scale rate tiers ─────────────────────────
 await goto('/rights-holder-page/172');
-await page.locator('.reference-territory-table').screenshot({
-    path: join(OUT, 'territory-deals-table-1008b.png')
-});
-captured.push('territory-deals-table-1008b.png');
-console.log('•', 'territory-deals-table-1008b.png');
+if (isSelected('territory-deals-table-1008b.png')) {
+    await page.locator('.reference-territory-table').screenshot({
+        path: join(OUT, 'territory-deals-table-1008b.png')
+    });
+    captured.push('territory-deals-table-1008b.png');
+    console.log('•', 'territory-deals-table-1008b.png');
+    await maybeFinishEarly();
+}
 
 // Sync first, otherwise every tier row reads "Not yet synced" and the
 // in-sync / Sync required contrast the tier shots exist to show is invisible.
