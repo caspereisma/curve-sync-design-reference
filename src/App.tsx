@@ -16,6 +16,8 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import IconButton from '@mui/material/IconButton';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
 import { StyledEngineProvider, ThemeProvider } from '@mui/material/styles';
 import Tooltip from '@mui/material/Tooltip';
 import { HashRouter, Link, Redirect, Route, Switch, useHistory, useLocation } from 'react-router-dom';
@@ -266,6 +268,7 @@ const referenceEvents: AssetSyncEvent[] = [
 
 function ReferenceTopBar({ onOpenAssetSync }: ReferenceTopBarProps): React.ReactElement {
     const location = useLocation();
+    const [clientsMenuAnchor, setClientsMenuAnchor] = useState<HTMLElement | null>(null);
     const navItems: NavItem[] = [
         { label: 'CMOs', href: '/cmos' },
         {
@@ -273,7 +276,8 @@ function ReferenceTopBar({ onOpenAssetSync }: ReferenceTopBarProps): React.React
             href: '/rights-holders',
             isActive:
                 location.pathname.startsWith('/rights-holders') ||
-                location.pathname.startsWith('/rights-holder-page'),
+                location.pathname.startsWith('/rights-holder-page') ||
+                location.pathname.startsWith('/performer-page'),
             hasMenu: true
         },
         { label: 'User management', href: '/users' },
@@ -296,12 +300,42 @@ function ReferenceTopBar({ onOpenAssetSync }: ReferenceTopBarProps): React.React
                             key={item.label}
                             className={`reference-nav-link${item.isActive ? ' active' : ''}`}
                             to={item.href}
+                            aria-haspopup={item.hasMenu ? 'menu' : undefined}
+                            onClick={
+                                item.hasMenu
+                                    ? (event) => {
+                                          event.preventDefault();
+                                          setClientsMenuAnchor(event.currentTarget);
+                                      }
+                                    : undefined
+                            }
                         >
                             {item.label}
                             {item.hasMenu && <ExpandMoreIcon sx={{ fontSize: 16, marginLeft: 0.5 }} />}
                         </Link>
                     ))}
                 </nav>
+                <Menu
+                    anchorEl={clientsMenuAnchor}
+                    open={Boolean(clientsMenuAnchor)}
+                    onClose={() => setClientsMenuAnchor(null)}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                >
+                    <MenuItem
+                        component={Link}
+                        to="/rights-holders"
+                        onClick={() => setClientsMenuAnchor(null)}
+                    >
+                        Rights Holders
+                    </MenuItem>
+                    <MenuItem
+                        component={Link}
+                        to="/performer-page/p1"
+                        onClick={() => setClientsMenuAnchor(null)}
+                    >
+                        Performers
+                    </MenuItem>
+                </Menu>
             </div>
             <div className="reference-topbar-right">
                 <Tooltip title="Imports">
@@ -718,6 +752,9 @@ function ReferenceShell(): React.ReactElement {
                     />
                     <Route exact path="/rights-holder-page/:id">
                         <ReferenceClientPage />
+                    </Route>
+                    <Route exact path="/performer-page/:id">
+                        <ReferenceClientPage clientType="performer" />
                     </Route>
                     <Route exact path="/events">
                         <ReferenceEventsPage events={assetSyncEvents} />

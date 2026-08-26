@@ -8,10 +8,25 @@ export interface RegistrationSegment {
 export type SyncState = 'not-synced' | 'synced' | 'requires-sync';
 
 export interface RightsHolderClientDetails {
+    // Performer-only fields (empty for Rights Holder clients).
+    firstNames: string;
+    surname: string;
+    aliases: string;
+    artistNames: string;
+    artistTypeMain: string;
+    artistTypeSession: string;
+    ipn: string;
+    spotifyArtistIds: string;
+    dateOfBirth: string;
+    nationality: string;
+    placeOfBirth: string;
+    countryOfBirth: string;
+    countriesOfResidence: string;
     nrpClientId: string;
     businessRegisteredAddress: string;
     businessMailingAddress: string;
     subLabels: string;
+    countryOfResidence: string;
     fugaOrgId: string;
     ddexPartyId: string;
     otherIdentifiers: string;
@@ -26,6 +41,7 @@ export interface RightsHolderClientDetails {
     advance: string;
     advanceAmount: string;
     advanceRecoupment: string;
+    minimumRoyaltyPayout: string;
     syncDealTermsWithCurve: string;
     accountBalance: string;
     openingBalance: string;
@@ -157,25 +173,40 @@ interface ReferenceCurveSyncData {
     salesTerms: ReferenceCurveSalesTerm[];
 }
 
+type ClientJsonEntry = Omit<RightsHolderSummary, 'syncState'> &
+    Partial<Pick<RightsHolderSummary, 'syncState'>> &
+    Partial<
+        Pick<RightsHolderClient, 'details' | 'statements' | 'cmoRegistrations'> & {
+            territoryDeals: Array<Omit<TerritoryDeal, 'syncState'> & Partial<Pick<TerritoryDeal, 'syncState'>>>;
+            repertoireAssets: Array<Omit<RepertoireAsset, 'syncState'> & Partial<Pick<RepertoireAsset, 'syncState'>>>;
+        }
+    >;
+
 interface ReferenceUiDataJson {
     curveSync: ReferenceCurveSyncData;
-    rightsHolders: Array<
-        Omit<RightsHolderSummary, 'syncState'> &
-            Partial<Pick<RightsHolderSummary, 'syncState'>> &
-            Partial<
-                Pick<RightsHolderClient, 'details' | 'statements' | 'cmoRegistrations'> & {
-                    territoryDeals: Array<Omit<TerritoryDeal, 'syncState'> & Partial<Pick<TerritoryDeal, 'syncState'>>>;
-                    repertoireAssets: Array<Omit<RepertoireAsset, 'syncState'> & Partial<Pick<RepertoireAsset, 'syncState'>>>;
-                }
-            >
-    >;
+    rightsHolders: ClientJsonEntry[];
+    performers: ClientJsonEntry[];
 }
 
 const emptyDetails: RightsHolderClientDetails = {
+    firstNames: '',
+    surname: '',
+    aliases: '',
+    artistNames: '',
+    artistTypeMain: '',
+    artistTypeSession: '',
+    ipn: '',
+    spotifyArtistIds: '',
+    dateOfBirth: '',
+    nationality: '',
+    placeOfBirth: '',
+    countryOfBirth: '',
+    countriesOfResidence: '',
     nrpClientId: '',
     businessRegisteredAddress: '',
     businessMailingAddress: '',
     subLabels: '',
+    countryOfResidence: '',
     fugaOrgId: '',
     ddexPartyId: '',
     otherIdentifiers: '',
@@ -190,6 +221,7 @@ const emptyDetails: RightsHolderClientDetails = {
     advance: '',
     advanceAmount: '',
     advanceRecoupment: '',
+    minimumRoyaltyPayout: '',
     syncDealTermsWithCurve: '',
     accountBalance: '',
     openingBalance: '',
@@ -212,7 +244,7 @@ const referenceUiData = referenceUiDataJson as ReferenceUiDataJson;
 
 export const referenceCurveSyncData = referenceUiData.curveSync;
 
-export const referenceRightsHolders: RightsHolderClient[] = referenceUiData.rightsHolders.map((client) => ({
+const toClient = (client: ClientJsonEntry): RightsHolderClient => ({
     ...client,
     syncState: client.syncState ?? 'not-synced',
     details: {
@@ -232,7 +264,14 @@ export const referenceRightsHolders: RightsHolderClient[] = referenceUiData.righ
     })),
     statements: client.statements ?? [],
     cmoRegistrations: client.cmoRegistrations ?? []
-}));
+});
+
+export const referenceRightsHolders: RightsHolderClient[] = referenceUiData.rightsHolders.map(toClient);
+
+export const referencePerformers: RightsHolderClient[] = (referenceUiData.performers ?? []).map(toClient);
 
 export const getReferenceRightsHolderById = (id: string | undefined): RightsHolderClient =>
     referenceRightsHolders.find((client) => client.id === id) ?? referenceRightsHolders[0];
+
+export const getReferencePerformerById = (id: string | undefined): RightsHolderClient =>
+    referencePerformers.find((client) => client.id === id) ?? referencePerformers[0];

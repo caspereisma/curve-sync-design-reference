@@ -307,7 +307,81 @@ body {
 }
 
 .rights-holder-grid {
-    grid-template-columns: minmax(280px, 1.7fr) minmax(120px, 0.7fr) minmax(180px, 1fr) 180px;
+    grid-template-columns: minmax(220px, 1.6fr) minmax(80px, 0.5fr) minmax(130px, 0.9fr) minmax(130px, 0.9fr) 180px minmax(110px, 0.6fr);
+}
+
+.reference-deal-end-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 2px;
+}
+
+.reference-deal-end-cell small {
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: 0.4px;
+    color: var(--nr-text-muted);
+}
+
+.reference-row-icons {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.reference-row-icon-slot {
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.reference-icon-button.reference-flag-button {
+    color: var(--nr-error);
+}
+
+.reference-icon-button.reference-flag-button:hover {
+    color: #b7191f;
+}
+
+.reference-indicator-dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+}
+
+.reference-indicator-dot.green {
+    background: var(--nr-success);
+}
+
+.reference-indicator-dot.orange {
+    background: var(--nr-warning);
+}
+
+.reference-indicator-diamond {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    flex: none;
+    transform: rotate(45deg);
+}
+
+.reference-rate-diamond {
+    margin-right: 10px;
+}
+
+.reference-indicator-diamond.green {
+    background: var(--nr-success);
+}
+
+.reference-indicator-diamond.orange {
+    border: 2px solid var(--nr-warning);
+    background: transparent;
 }
 
 .reference-table-name-cell {
@@ -1878,6 +1952,7 @@ body {
 .reference-field-input {
     width: 100%;
     min-width: 0;
+    margin: 0;
     padding: 0;
     border: 0;
     background: transparent;
@@ -1894,6 +1969,22 @@ body {
 
 .reference-field-input:focus {
     background: #f4f4f4;
+}
+
+select.reference-field-input {
+    height: 30px;
+    cursor: pointer;
+}
+
+.reference-field-input[type='number'] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+.reference-field-input[type='number']::-webkit-inner-spin-button,
+.reference-field-input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 .reference-field-helper {
@@ -1927,6 +2018,23 @@ body {
     display: inline-flex;
     width: fit-content;
     align-items: center;
+}
+
+.reference-artist-type-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.reference-artist-type-field label {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    color: #3d3d3f;
+    font-size: 14px;
+}
+
+.reference-artist-type-field label:has(.Mui-disabled) {
+    color: #b4b4b6;
 }
 
 .reference-autoextend-field {

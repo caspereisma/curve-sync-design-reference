@@ -645,5 +645,144 @@
                 }
             ]
         }
+    ],
+    "performers": [
+        {
+            "id": "p1",
+            "clientName": "Example Performing Artist A",
+            "tier": "0",
+            "dealStartDate": "2026-03-01",
+            "syncState": "synced",
+            "registrations": [
+                {
+                    "color": "green",
+                    "value": 74
+                },
+                {
+                    "color": "yellow",
+                    "value": 16
+                },
+                {
+                    "color": "gray",
+                    "value": 10
+                }
+            ],
+            "details": {
+                "firstNames": "Example Performing",
+                "surname": "Artist A",
+                "aliases": "Break Out Singer, My Solo Project",
+                "artistNames": "Break Out Singer",
+                "artistTypeMain": "Yes",
+                "artistTypeSession": "",
+                "nrpClientId": "10001044",
+                "ipn": "00123456789",
+                "spotifyArtistIds": "6eUKZXaKkcviH0Ku9w2n3V",
+                "royaltiesClientName": "Break Out Singer",
+                "royaltiesContractReferences": "EPA-2026-001",
+                "dateOfBirth": "1994-06-14",
+                "nationality": "United Kingdom",
+                "placeOfBirth": "Manchester",
+                "countryOfBirth": "GB",
+                "countriesOfResidence": "GB",
+                "dealEndDate": "2027-12-31",
+                "currency": "EUR",
+                "accountingFrequency": "Quarterly",
+                "noticePeriod": "1 month",
+                "advance": "Yes",
+                "advanceAmount": "10,000",
+                "advanceRecoupment": "in-recoupment"
+            },
+            "territoryDeals": [
+                {
+                    "id": "deal-p1-1",
+                    "territories": "World",
+                    "rateType": "sliding",
+                    "rate": "10%",
+                    "slidingScale": [
+                        {
+                            "id": "tier-p1-a",
+                            "to": "500",
+                            "rate": "10%"
+                        },
+                        {
+                            "id": "tier-p1-b",
+                            "to": "2500",
+                            "rate": "12%"
+                        },
+                        {
+                            "id": "tier-p1-c",
+                            "to": "above",
+                            "rate": "15%"
+                        }
+                    ],
+                    "startDate": "2026-03-01",
+                    "endDate": "2027-12-31",
+                    "status": "CURRENT",
+                    "syncState": "synced"
+                }
+            ]
+        },
+        {
+            "id": "p2",
+            "clientName": "Example Performing Artist B",
+            "tier": "",
+            "dealStartDate": "",
+            "syncState": "not-synced",
+            "registrations": [
+                {
+                    "color": "empty",
+                    "value": 100
+                }
+            ],
+            "details": {
+                "firstNames": "Example Performing",
+                "surname": "Artist B",
+                "aliases": "Classic Super Band",
+                "artistNames": "Classic Super Band",
+                "artistTypeSession": "Yes",
+                "royaltiesClientName": "Classic Super Band"
+            }
+        },
+        {
+            "id": "p3",
+            "clientName": "Example Performing Artist C",
+            "tier": "1",
+            "dealStartDate": "2025-11-01",
+            "syncState": "requires-sync",
+            "registrations": [
+                {
+                    "color": "green",
+                    "value": 40
+                },
+                {
+                    "color": "gray",
+                    "value": 60
+                }
+            ],
+            "details": {
+                "firstNames": "Example Performing",
+                "surname": "Artist C",
+                "aliases": "Solo Icon",
+                "artistNames": "Solo Icon",
+                "artistTypeMain": "Yes",
+                "royaltiesClientName": "Solo Icon",
+                "dealEndDate": "2026-09-28",
+                "currency": "EUR",
+                "accountingFrequency": "Quarterly",
+                "noticePeriod": "1 month"
+            },
+            "territoryDeals": [
+                {
+                    "id": "deal-p3-1",
+                    "territories": "Europe",
+                    "rateType": "flat",
+                    "rate": "8%",
+                    "startDate": "2025-11-01",
+                    "endDate": "2026-09-28",
+                    "status": "CURRENT",
+                    "syncState": "requires-sync"
+                }
+            ]
+        }
     ]
 }

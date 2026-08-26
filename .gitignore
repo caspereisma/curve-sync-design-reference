@@ -11,3 +11,6 @@ coverage/
 playwright-report/
 test-results/
 screenshots/diffs/
+
+# Claude Code session config/worktrees
+.claude/

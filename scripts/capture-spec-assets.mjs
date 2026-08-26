@@ -40,7 +40,9 @@ const DEFAULT_OUT = resolve(
 );
 
 const SHOTS = [
+    ['01-rights-holders-list.png', 'rights-holder list, full page'],
     ['02-client-detail-main.png', '1008D main details, full page (no progress tile)'],
+    ['12-performer-detail-main.png', 'Example Performing Artist A (p1) main details, full page'],
     ['territory-deals-table-1008b.png', '1008B territory deals table (element clip)'],
     ['sync-client-data-never-synced-1008d.png', 'client data tab, never synced'],
     ['sync-territory-deals-never-synced-1008d.png', 'territory deals tab, never synced'],
@@ -69,7 +71,13 @@ function parseArgs() {
     const out = outIndex === -1 ? DEFAULT_OUT : args[outIndex + 1];
     if (!out) bail('--out needs a directory');
     if (!existsSync(out)) bail(`output directory does not exist: ${out}`);
-    return { out };
+    // --only a,b,c  → write only shots whose filename contains one of the
+    // substrings. Interactions still run (later shots depend on the state
+    // chain), but untargeted PNGs are left untouched on disk.
+    const onlyIndex = args.indexOf('--only');
+    const only = onlyIndex === -1 ? null : (args[onlyIndex + 1] ?? '').split(',').filter(Boolean);
+    if (onlyIndex !== -1 && (!only || only.length === 0)) bail('--only needs a comma-separated list');
+    return { out, only };
 }
 
 async function waitForServer(url, timeoutMs) {
@@ -93,12 +101,23 @@ async function ensureServer() {
     if (!(await waitForServer(BASE, 60_000))) bail('dev server did not start on :3101');
 }
 
-const { out: OUT } = parseArgs();
+const { out: OUT, only: ONLY } = parseArgs();
 await ensureServer();
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1440, height: 1024 } });
 const captured = [];
+
+const isSelected = (name) => !ONLY || ONLY.some((fragment) => name.includes(fragment));
+const selectedFiles = SHOTS.map(([file]) => file).filter(isSelected);
+if (selectedFiles.length === 0) bail('--only matched no shots (see --list)');
+
+async function maybeFinishEarly() {
+    if (!ONLY || !selectedFiles.every((file) => captured.includes(file))) return;
+    await browser.close();
+    console.log(`\ncapture-spec-assets: ${captured.length} shots written to ${OUT}`);
+    process.exit(0);
+}
 
 async function goto(path) {
     await page.goto(`${BASE}/#${path}`);
@@ -111,10 +130,12 @@ async function goto(path) {
 }
 
 async function shot(name, opts = {}) {
+    if (!isSelected(name)) return;
     await page.waitForTimeout(250);
     await page.screenshot({ path: join(OUT, name), ...opts });
     captured.push(name);
     console.log('•', name);
+    await maybeFinishEarly();
 }
 
 const headerButton = (name) =>
@@ -129,6 +150,14 @@ async function openSyncDialog() {
     await page.locator('.reference-sync-modal').waitFor();
     await page.waitForTimeout(300);
 }
+
+// ── Rights-holder list ───────────────────────────────────────────────────────
+await goto('/rights-holders');
+await shot('01-rights-holders-list.png', { fullPage: true });
+
+// ── Performer detail (p1): staging-parity performer sections ────────────────
+await goto('/performer-page/p1');
+await shot('12-performer-detail-main.png', { fullPage: true });
 
 // ── 1008D Records (174): never synced → synced → renamed ────────────────────
 await goto('/rights-holder-page/174');
@@ -174,11 +203,14 @@ await dialogAction('Cancel').click();
 
 // ── 1008B Records s (172): sliding scale rate tiers ─────────────────────────
 await goto('/rights-holder-page/172');
-await page.locator('.reference-territory-table').screenshot({
-    path: join(OUT, 'territory-deals-table-1008b.png')
-});
-captured.push('territory-deals-table-1008b.png');
-console.log('•', 'territory-deals-table-1008b.png');
+if (isSelected('territory-deals-table-1008b.png')) {
+    await page.locator('.reference-territory-table').screenshot({
+        path: join(OUT, 'territory-deals-table-1008b.png')
+    });
+    captured.push('territory-deals-table-1008b.png');
+    console.log('•', 'territory-deals-table-1008b.png');
+    await maybeFinishEarly();
+}
 
 // Sync first, otherwise every tier row reads "Not yet synced" and the
 // in-sync / Sync required contrast the tier shots exist to show is invisible.
@@ -216,7 +248,6 @@ await shot('sync-tiers-after-crossing-1008b.png');
 
 await browser.close();
 
-const expected = SHOTS.map(([file]) => file);
-const missing = expected.filter((file) => !captured.includes(file));
+const missing = selectedFiles.filter((file) => !captured.includes(file));
 if (missing.length) bail(`missing captures: ${missing.join(', ')}`);
 console.log(`\ncapture-spec-assets: ${captured.length} shots written to ${OUT}`);
