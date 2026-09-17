@@ -1,22 +1,86 @@
-# Session handoff — curve-sync prototype (updated 2026-08-26)
+# Session handoff — Design QA kickoff (updated 2026-09-17)
 
-Context for continuing in a fresh Claude Code session. The `neighbouring-rights` skill + the `nr-product-sdd-confluence-publishing` memory carry the broader domain/publishing context. Spec documentation lives in `~/code/nr-product` (`specs/NR-SPEC-003-deal-terms-curve-sync/`) — the repo is the source of truth; Confluence holds mirrors.
+Context for a fresh Claude Code session running the **UI design QA** of the NRP
+build against Figma + this prototype. Run it through the **`design-qa` agent**
+(`.claude/agents/design-qa.md` — local, gitignored): it carries the process
+(input contract, capture matrix, three comparison passes, verification,
+report format, exclusions). This file carries the *facts* the agent needs as
+inputs. Broader domain context: the `neighbouring-rights` skill + the
+`nr-product-sdd-confluence-publishing` memory.
 
-## Commit status (as of 2026-08-26)
+Recommended session setup: **Fable, effort high**, one surface per pass
+(screenshots eat context — that's why this QA runs in its own session).
 
-All earlier session work is **merged and pushed** (PRs #1–#9 on `caspereisma/curve-sync-design-reference`; `main` = `7ffa63a`). The Songtrust upstream (`Songtrust/curve-sync-design-reference`) is ~3 months stale — only its PR #1 (May 6) ever landed there.
+## Repo/docs state (2026-09-17)
 
-### Uncommitted working tree (2026-08-26)
+Everything is merged and pushed: this repo `main` = `cd709ed` (PRs #1–#10 on
+`caspereisma/curve-sync-design-reference`); the nr-product 2026-08-26 doc pass
+is merged (Songtrust/nr-product PR #71) and all Confluence mirrors are synced.
+Example-map red cards are clear (Q14 resolved 2026-08-26). Remaining spec
+action: validator re-run. The Songtrust fork of *this* repo is stale — the
+caspereisma repo is canonical.
 
-- **New client-data fields (RH page):** `Country of Residence` (General, ISO select) + `Minimum royalty payout` (Deal Terms, currency-dependent numeric) — both Curve-synced with **per-field drift markers** vs the last-synced snapshot, both added to the sync dialog's Client data tab (now **ten rows**). `Currency` is now a **EUR/GBP/USD select**.
-- **Performer client detail page** (`#/performer-page/:id`, seeded `p1`–`p3`): staging-parity General/Identifiers/Bio sections, shared Deal Terms/sync/Billing/Comments. Folded into **NR-BRIEF-004 scope** (PM decision 2026-08-26).
-- **Masthead Clients dropdown** (Rights Holders / Performers) — **prototype-only navigation, deliberately undocumented** (see memory `prototype-only-ui-not-for-docs`).
-- **Pre-existing WIP from an earlier session (do not fold into the above):** clients-list deal-end/indicator columns (`ReferenceClientsPage.tsx`, `SlidingScaleDiamond.tsx`, parts of `reference-ui.css`, `capture-spec-assets.mjs` `--only` flag). This WIP breaks 9 list-page visual baselines (`npm run test:visual`); the suite passes without the working tree. Commit + rebaseline or revert — user's call.
+## QA targets and sources of truth
 
-## Docs state (nr-product, updated 2026-08-26 — Confluence sync PENDING PM REVIEW)
+**Target (the build):** `https://nr-stag.downtownmusic.com` — needs the
+user's logged-in Chrome (claude-in-chrome tools), not the built-in browser.
+Routes: `/rights-holders`, `/rights-holder-page/:id`, `/performers`,
+`/performer-page/:id`. Staging clients must be driven into states matching
+the prototype's seeds (Phase 0 of the agent process).
 
-The 2026-08-26 doc pass updated: `NR-BRIEF-004` (scope bullet), `NR-SPEC-003-MAP-01` (Ex 1.6, **Q14 opened** — Curve keys for the new fields), `NR-SPEC-003` main spec (scope, Story 3 row count, Gate-2 note, validator re-run flagged), `NR-SPEC-003-DESIGN-01` (§3.3, §4.1–4.2, §6.2 ten rows, **new §12 Performer surface**, renumbered §13–15), `NR-INIT-003` (action log + open actions). Spec assets re-captured (`pnpm snap:spec`, 14 shots incl. `12-performer-detail-main.png`). **Do not sync Confluence mirrors until Casper has reviewed the pass** — tracked as an open action in NR-INIT-003.
+**Source — prototype (interaction/state truth):** `preview_start
+{name:"curve-sync-dev"}` → `http://localhost:3101`. Seeded states:
+
+| Client | Route | State |
+| --- | --- | --- |
+| 1008B Records s | `#/rights-holder-page/172` | sliding scale, requires-sync (tiers, CMO overrides) |
+| 1008C Records | `#/rights-holder-page/173` | flat, synced (base + ES/UK exclusion cards) |
+| 1008D Records | `#/rights-holder-page/174` | flat, never synced |
+| Example Performing Artist A | `#/performer-page/p1` | performer, sliding, synced (full Bio/IPN/Spotify) |
+| Example Performing Artist B | `#/performer-page/p2` | performer, sparse, not-synced, session artist |
+| Example Performing Artist C | `#/performer-page/p3` | performer, flat Europe deal, requires-sync |
+
+Scripted state walkthroughs: `scripts/capture-spec-assets.mjs`
+(`pnpm snap:spec`, `--only <fragment,…>`).
+
+**Source — Figma (visual truth):** file `wO6osFhV4x5DPfU0pCqYfc` (NR-Working).
+Node map: rights-holder list `10731-19697` · sync dialog `10722-10703`,
+`10840-35902`, `10620-10309` · dialog details `10841-36612 / -37514 / -42545 /
+-43042 / -43331`, `10840-34219` · rate tiers `10843-44142 / -46316 / -47213` ·
+single-client sync details dialog `10702-25140` · event details `10702-24581`.
+
+**Source — written spec (behavioral truth / checklist):**
+`~/code/nr-product/specs/NR-SPEC-003-deal-terms-curve-sync/NR-SPEC-003-DESIGN-01-design-reference.md`
+(surface inventory §1, per-surface behavior §2–§12). Confluence mirrors:
+design ref `4994138140` · spec `4993449986` · example map `4957011970` ·
+business logic `4993548292` · initiative hub `4957143041`.
+
+## Surface ↔ ticket map (findings attach here)
+
+Epic [DNRP-284]. Client list: DNRP-672 (subtasks 673/674/675). Client detail
++ dialog: DNRP-497 tree — 511 (indicators), 517 (state response), 518
+(dialog comparison view), 679 (Deal Terms section), 687 (CMO overrides), 688
+(rate tiers), 689 (preview endpoint), 695 (edit-deal dialog), 696 (override
+storage), 705 (guard surfaces). New-field work: 699 (BE) / 700 (FE).
+Performer parity: 701. Custody: 702 (post-registration unlock), 703 (M1
+validation), 704 (sequential advance). Engine: 504 tree, 519 (guarded push).
+SSE: 683/684/685. **Phase 0: check ticket statuses first and QA only shipped
+surfaces.**
+
+## Known false positives (also in the agent file — keep in sync)
+
+- Masthead **Clients dropdown** = prototype-only navigation (memory
+  `prototype-only-ui-not-for-docs`). Its absence in the build is never a
+  finding.
+- Header **KPI tiles carry hardcoded demo values** in the prototype — compare
+  tile structure/states, never the numbers.
+- Mock client names/amounts differ by design — compare labels, layout,
+  derived states; not data values.
+- `assets/10-events-page.png` is referenced in DESIGN-01 §1 but absent from
+  nr-product — a docs gap, not a build gap.
 
 ## Run the prototype
 
-Preview server `curve-sync-dev` on `http://localhost:3101` (config in `.claude/launch.json`). Use `preview_start {name:"curve-sync-dev"}`; verify via the Browser pane. Key pages: `#/rights-holder-page/172` (sliding, requires-sync) · `/173` (flat, synced) · `/174` (never synced) · `#/performer-page/p1` (performer, synced) · `#/events`. Screenshots regenerate with `pnpm snap:spec` (writes into nr-product's spec assets dir; `--only <fragment,…>` limits the run).
+Preview server `curve-sync-dev` on `http://localhost:3101` (config in
+`.claude/launch.json`), via `preview_start {name:"curve-sync-dev"}` — never
+Bash. Visual suite: `npm run test:visual` (12 baselines, green at `cd709ed`).
