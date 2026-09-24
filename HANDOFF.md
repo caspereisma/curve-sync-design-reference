@@ -78,6 +78,9 @@ surfaces.**
   derived states; not data values.
 - `assets/10-events-page.png` is referenced in DESIGN-01 §1 but absent from
   nr-product — a docs gap, not a build gap.
+- Empty form fields show their label (unshrunk) in the value position — this
+  is the standard NR form-field design in view and edit mode, never a finding
+  (Casper, 2026-09-23).
 
 ## Run the prototype
 
